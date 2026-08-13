@@ -5,10 +5,26 @@ namespace EolTestPatternGenerator;
 
 public partial class MainForm : Form
 {
+    private static readonly PatternChoice[] MainPatternChoices =
+    [
+        new(PatternType.Border, "外框（兼容 0.png）"),
+        new(PatternType.NinePointGrid, "九点图"),
+        new(PatternType.DistortionGrid, "畸变点阵（27×7）"),
+        new(PatternType.CorrectionCross, "上下校正十字"),
+        new(PatternType.WhiteRectangle, "白色矩形"),
+        new(PatternType.Black, "全黑图（RGB 仅 0）"),
+        new(PatternType.FullWhite, "全白图（RGB 仅 255）"),
+        new(PatternType.FullRed, "全红图（255,0,0）"),
+        new(PatternType.FullGreen, "全绿图（0,255,0）"),
+        new(PatternType.FullBlue, "全蓝图（0,0,255）"),
+        new(PatternType.ImportedImage, "导入图片并添加白框")
+    ];
+
     private readonly Dictionary<PatternType, PatternSettings> _patternProfiles = new();
     private PatternType _activePatternType = PatternType.Border;
     private bool _updatingControls;
     private bool _isRendering;
+    private int _activeExports;
 
     public MainForm()
     {
@@ -25,22 +41,26 @@ public partial class MainForm : Form
         toolTip.SetToolTip(numericPatternWidth, "矩形图为区域宽度；点阵图为第一个到最后一个圆心的 X 距离。");
         toolTip.SetToolTip(numericPatternHeight, "矩形图为区域高度；点阵图为第一个到最后一个圆心的 Y 距离。");
         toolTip.SetToolTip(numericDotRadius, "半径 4 对应 9 像素直径；半径 0 对应单像素点。");
-        toolTip.SetToolTip(buttonBatchExport, "按各图卡已保存的参数、当前画布和当前导出格式生成全部 14 张图卡。");
+        toolTip.SetToolTip(buttonBatchExport, "生成主窗口的 10 张图卡；RGB 相移 8 张请在独立工具中导出。");
+        toolTip.SetToolTip(buttonExportScreen1, "按三张参考图导出 1.B_W、2.W_B 和 3.B；固定 3200×2000。只允许无损格式。");
 
         ResetProfilesToDefaults();
 
         _updatingControls = true;
+        comboPattern.Items.Clear();
+        comboPattern.DataSource = MainPatternChoices;
+        comboPattern.DisplayMember = nameof(PatternChoice.Text);
         comboOutputFormat.SelectedIndex = 0;
         comboPattern.SelectedIndex = 0;
         _updatingControls = false;
 
-        _activePatternType = PatternType.Border;
+        _activePatternType = SelectedPatternType;
         LoadActiveProfile();
         UpdatePreview();
     }
 
     private PatternType SelectedPatternType =>
-        comboPattern.SelectedIndex >= 0 ? (PatternType)comboPattern.SelectedIndex : PatternType.Border;
+        comboPattern.SelectedItem is PatternChoice choice ? choice.Type : PatternType.Border;
 
     private void ResetProfilesToDefaults()
     {
@@ -76,6 +96,9 @@ public partial class MainForm : Form
             return;
         }
 
+        borderOverlayEditor.CanvasSize = new Size(
+            (int)numericCanvasWidth.Value,
+            (int)numericCanvasHeight.Value);
         StoreControlsInProfiles(_activePatternType);
         SchedulePreview();
     }
@@ -129,21 +152,25 @@ public partial class MainForm : Form
 
     private PatternSettings ReadSettings(PatternType? patternType = null)
     {
-        return new PatternSettings
-        {
-            PatternType = patternType ?? SelectedPatternType,
-            CanvasWidth = (int)numericCanvasWidth.Value,
-            CanvasHeight = (int)numericCanvasHeight.Value,
-            PatternX = (int)numericPatternX.Value,
-            PatternY = (int)numericPatternY.Value,
-            PatternWidth = (int)numericPatternWidth.Value,
-            PatternHeight = (int)numericPatternHeight.Value,
-            Phase = (int)numericPhase.Value,
-            DotRadius = (int)numericDotRadius.Value,
-            Rows = (int)numericRows.Value,
-            Columns = (int)numericColumns.Value,
-            LineWidth = (int)numericLineWidth.Value
-        };
+        PatternType type = patternType ?? SelectedPatternType;
+        PatternSettings settings = _patternProfiles.TryGetValue(type, out PatternSettings? profile)
+            ? profile.Clone()
+            : PatternPresets.Create(type);
+
+        settings.PatternType = type;
+        settings.CanvasWidth = (int)numericCanvasWidth.Value;
+        settings.CanvasHeight = (int)numericCanvasHeight.Value;
+        settings.PatternX = (int)numericPatternX.Value;
+        settings.PatternY = (int)numericPatternY.Value;
+        settings.PatternWidth = (int)numericPatternWidth.Value;
+        settings.PatternHeight = (int)numericPatternHeight.Value;
+        settings.Phase = (int)numericPhase.Value;
+        settings.DotRadius = (int)numericDotRadius.Value;
+        settings.Rows = (int)numericRows.Value;
+        settings.Columns = (int)numericColumns.Value;
+        settings.LineWidth = (int)numericLineWidth.Value;
+        settings.BorderOverlay = borderOverlayEditor.GetSettings();
+        return settings;
     }
 
     private void WriteSettings(PatternSettings settings)
@@ -162,6 +189,8 @@ public partial class MainForm : Form
             SetNumericValue(numericRows, settings.Rows);
             SetNumericValue(numericColumns, settings.Columns);
             SetNumericValue(numericLineWidth, settings.LineWidth);
+            borderOverlayEditor.CanvasSize = new Size(settings.CanvasWidth, settings.CanvasHeight);
+            borderOverlayEditor.SetSettings(settings.BorderOverlay);
         }
         finally
         {
@@ -181,18 +210,21 @@ public partial class MainForm : Form
     {
         PatternType type = SelectedPatternType;
         bool isGrid = type is PatternType.NinePointGrid or PatternType.DistortionGrid;
-        bool isBlack = type == PatternType.Black;
+        bool isSolid = IsExactSolidPattern(type);
+        bool isImported = type == PatternType.ImportedImage;
         bool usesLineWidth = type is PatternType.Border or PatternType.CorrectionCross;
         bool usesQuality = comboOutputFormat.SelectedIndex is (int)ImageFormatKind.Jpeg or (int)ImageFormatKind.WebP;
 
-        numericPhase.Enabled = type == PatternType.PhaseStripes;
-        labelPhase.Enabled = numericPhase.Enabled;
+        numericPhase.Enabled = false;
+        labelPhase.Enabled = false;
 
-        numericPatternX.Enabled = !isBlack;
-        numericPatternY.Enabled = !isBlack;
-        numericPatternWidth.Enabled = !isBlack;
-        numericPatternHeight.Enabled = !isBlack;
-        buttonCenter.Enabled = !isBlack;
+        numericPatternX.Enabled = !isSolid && !isImported;
+        numericPatternY.Enabled = !isSolid && !isImported;
+        numericPatternWidth.Enabled = !isSolid && !isImported;
+        numericPatternHeight.Enabled = !isSolid && !isImported;
+        buttonCenter.Enabled = !isSolid && !isImported;
+        buttonBrowseSourceImage.Visible = isImported;
+        labelPatternHelp.Width = isImported ? 190 : 331;
 
         numericDotRadius.Enabled = isGrid;
         numericRows.Enabled = isGrid;
@@ -212,7 +244,17 @@ public partial class MainForm : Form
         labelPatternHeight.Text = isGrid ? "Y 跨度" : "高度";
         labelPatternHelp.Text = isGrid
             ? "点阵 X/Y 是左上第一个圆心；跨度是首末圆心距离，圆点半径单独设置。"
-            : "矩形类图案使用左上角 X/Y 和区域宽高；所有参数均为整数像素。";
+            : isImported
+                ? string.IsNullOrWhiteSpace(_patternProfiles[type].SourceImagePath)
+                    ? "请选择外部图片；图片会按画布尺寸最近邻缩放，再应用可调白框叠加层。"
+                    : $"底图：{Path.GetFileName(_patternProfiles[type].SourceImagePath)}"
+            : isSolid
+                ? "纯色图整张画布仅使用 0/255；保存时只允许 PNG、BMP 或 TIFF。"
+                : "矩形类图案使用左上角 X/Y 和区域宽高；白框叠加层可覆盖任意底图。";
+
+        borderOverlayEditor.CanvasSize = new Size(
+            (int)numericCanvasWidth.Value,
+            (int)numericCanvasHeight.Value);
     }
 
     private void SchedulePreview()
@@ -277,10 +319,8 @@ public partial class MainForm : Form
         {
             PatternSettings settings = ReadSettings(_activePatternType);
             using var image = PatternGenerator.Generate(settings);
-            Bitmap bitmap = MatBitmapConverter.ToPreviewBitmap(image);
-            Image? previous = previewPictureBox.Image;
-            previewPictureBox.Image = bitmap;
-            previous?.Dispose();
+            Bitmap bitmap = MatBitmapConverter.ToBitmap(image);
+            imagePreviewControl.SetImage(bitmap, preserveView: true);
 
             labelPreviewInfo.Text = $"预览：{settings.CanvasWidth:N0} × {settings.CanvasHeight:N0} | {comboPattern.Text}";
             statusLabel.Text = $"就绪 | 区域/跨度 {settings.PatternWidth:N0} × {settings.PatternHeight:N0} | X={settings.PatternX}, Y={settings.PatternY}";
@@ -301,6 +341,11 @@ public partial class MainForm : Form
         StoreControlsInProfiles(_activePatternType);
         PatternSettings settings = ReadSettings(_activePatternType);
         ImageExportOptions exportOptions = ReadExportOptions();
+        if (IsExactSolidPattern(settings.PatternType) && !EnsureLosslessFormat(exportOptions, "纯色图"))
+        {
+            return;
+        }
+
         string extension = ImageFileWriter.GetExtension(exportOptions.Format);
 
         saveFileDialog.Filter = ImageFileWriter.GetDialogFilter(exportOptions.Format);
@@ -346,6 +391,12 @@ public partial class MainForm : Form
 
     private async void buttonBatchExport_Click(object? sender, EventArgs e)
     {
+        ImageExportOptions exportOptions = ReadExportOptions();
+        if (!EnsureLosslessFormat(exportOptions, "包含纯色图的批量导出"))
+        {
+            return;
+        }
+
         if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
@@ -353,18 +404,17 @@ public partial class MainForm : Form
 
         StoreControlsInProfiles(_activePatternType);
         PatternSettings current = _patternProfiles[_activePatternType].Clone();
-        ImageExportOptions exportOptions = ReadExportOptions();
         var profileSnapshot = _patternProfiles.ToDictionary(
             pair => pair.Key,
             pair => pair.Value.Clone());
 
-        groupActions.Enabled = false;
+        BeginExport();
         UseWaitCursor = true;
-        statusLabel.Text = "正在批量导出 14 张图卡...";
+        statusLabel.Text = "正在批量导出主窗口 10 张图卡...";
 
         try
         {
-            IReadOnlyList<string> paths = await Task.Run(() => DefaultBatchExporter.ExportAll(
+            IReadOnlyList<string> paths = await Task.Run(() => MainPatternBatchExporter.ExportAll(
                 folderBrowserDialog.SelectedPath,
                 current.CanvasWidth,
                 current.CanvasHeight,
@@ -388,8 +438,7 @@ public partial class MainForm : Form
         }
         finally
         {
-            groupActions.Enabled = true;
-            UseWaitCursor = false;
+            EndExport();
         }
     }
 
@@ -401,6 +450,151 @@ public partial class MainForm : Form
             Format = (ImageFormatKind)formatIndex,
             Quality = (int)numericQuality.Value
         };
+    }
+
+    private void borderOverlayEditor_SettingsChanged(object? sender, EventArgs e)
+    {
+        if (_updatingControls)
+        {
+            return;
+        }
+
+        StoreControlsInProfiles(_activePatternType);
+        SchedulePreview();
+    }
+
+    private void buttonPhaseTool_Click(object? sender, EventArgs e)
+    {
+        using var form = new PhaseStripeForm();
+        form.ShowDialog(this);
+    }
+
+    private void buttonBrowseSourceImage_Click(object? sender, EventArgs e)
+    {
+        if (openImageDialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        PatternSettings settings = ReadSettings(PatternType.ImportedImage);
+        settings.SourceImagePath = openImageDialog.FileName;
+        _patternProfiles[PatternType.ImportedImage] = settings;
+        labelPatternHelp.Text = $"底图：{Path.GetFileName(settings.SourceImagePath)}";
+        UpdatePreview();
+    }
+
+    private async void buttonExportScreen1_Click(object? sender, EventArgs e)
+    {
+        ImageExportOptions exportOptions = ReadExportOptions();
+        if (!EnsureLosslessFormat(exportOptions, "1号屏参考图"))
+        {
+            return;
+        }
+
+        folderBrowserDialog.Description = "选择 1号屏三张参考图的导出目录";
+        if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        BeginExport();
+        statusLabel.Text = "正在导出 1号屏三张参考图...";
+
+        try
+        {
+            IReadOnlyList<string> paths = await Task.Run(() => ScreenOneBatchExporter.ExportReferenceThree(
+                folderBrowserDialog.SelectedPath,
+                exportOptions));
+            statusLabel.Text = $"1号屏参考图导出完成：{paths.Count} 张";
+            MessageBox.Show(
+                this,
+                $"已导出 {paths.Count} 张：1.B_W、2.W_B、3.B。\n尺寸：3200 × 2000\n目录：{folderBrowserDialog.SelectedPath}",
+                "导出完成",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        catch (Exception exception)
+        {
+            statusLabel.Text = $"1号屏导出失败：{exception.Message}";
+            MessageBox.Show(this, exception.Message, "导出失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+        finally
+        {
+            EndExport();
+        }
+    }
+
+    private void buttonExportScreen1Stereo_Click(object? sender, EventArgs e)
+    {
+        MessageBox.Show(
+            this,
+            "当前按你提供的三张普通 1号屏参考图实现；3D 系列暂未启用。",
+            "暂未启用",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private bool EnsureLosslessFormat(ImageExportOptions options, string outputName)
+    {
+        if (options.Format is ImageFormatKind.Png or ImageFormatKind.Bmp or ImageFormatKind.Tiff)
+        {
+            return true;
+        }
+
+        MessageBox.Show(
+            this,
+            $"{outputName}要求 RGB 通道值严格只有 0 和 255。JPEG/WebP 会产生中间值。\n\n请改选 PNG、BMP 或 TIFF。",
+            "需要无损格式",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Warning);
+        return false;
+    }
+
+    private static bool IsExactSolidPattern(PatternType type)
+    {
+        return type is PatternType.Black
+            or PatternType.FullWhite
+            or PatternType.FullRed
+            or PatternType.FullGreen
+            or PatternType.FullBlue;
+    }
+
+    private void BeginExport()
+    {
+        _activeExports++;
+        settingsFlowPanel.Enabled = false;
+        groupActions.Enabled = false;
+        UseWaitCursor = true;
+    }
+
+    private void EndExport()
+    {
+        _activeExports = Math.Max(0, _activeExports - 1);
+        if (IsDisposed || Disposing)
+        {
+            return;
+        }
+
+        bool enabled = _activeExports == 0;
+        settingsFlowPanel.Enabled = enabled;
+        groupActions.Enabled = enabled;
+        UseWaitCursor = !enabled;
+    }
+
+    private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        if (_activeExports == 0)
+        {
+            return;
+        }
+
+        e.Cancel = true;
+        MessageBox.Show(
+            this,
+            "图卡正在导出，请等待导出完成后再关闭窗口。",
+            "正在导出",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
     }
 
     private void MainForm_FormClosed(object? sender, FormClosedEventArgs e)

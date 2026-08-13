@@ -140,3 +140,44 @@ EolTestPatternGenerator.exe --verify "C:\Users\admin\Desktop\90K图片\EOL图卡
 - [opencv/opencv_contrib](https://github.com/opencv/opencv_contrib)（Apache-2.0）：Structured Light 模块
 
 项目中的 RGB 相移条纹按用户样图反推的离散公式实现，并非直接使用上述项目的正弦相移公式。
+# EOL 图卡生成器
+
+这是一个基于 C# WinForms、.NET 8 和 OpenCvSharp 的图卡生成工具。所有窗口、按钮和参数控件均由 WinForms Designer 文件定义，可在 Visual Studio 设计器中继续编辑。
+
+## 本版功能
+
+- 画布宽高、图案区域位置和尺寸均可修改，矩形图案支持一键居中。
+- 点阵圆点半径可调；半径 `4` 对应 `9 px` 直径。
+- 预览支持鼠标滚轮按指针缩放、鼠标左键拖动、适合窗口、100% 和重置视图；画布外使用界面灰色。
+- 主窗口可生成外框、九点图、畸变点阵、上下校正图、白色矩形，以及全黑、全白、全红、全绿、全蓝图；主窗口批量输出这 10 张。RGB 相移的 8 张只在独立工具中批量导出。
+- 白框是独立叠加层，可覆盖任意当前生成的底图；也可导入 PNG/JPEG/BMP/TIFF/WebP 外部图片作为底图。白框 X/Y、宽高和线宽可调。
+- RGB 八步相移位于独立窗口，可选择 `RGB`、`RBG`、`GRB`、`GBR`、`BRG`、`BGR` 六种像素排列，并可保存单步或批量导出 1–8 步。
+- 输出支持 PNG、JPEG、BMP、TIFF 和 WebP。要求通道值严格为 `0/255` 的纯色图与 1号屏参考图仅允许 PNG、BMP 或 TIFF。
+
+## 1号屏三张参考图
+
+当前按用户确认的三张普通参考图实现，固定输出 `3200 × 2000`：
+
+| 文件名 | 布局 |
+| --- | --- |
+| `1.B_W` | 白底，左黑区 `x=50..1549, y=50..1949` |
+| `2.W_B` | 白底，右黑区 `x=1650..3149, y=50..1949` |
+| `3.B` | 白底，同时包含上述左右黑区 |
+
+共同几何为四周 `50 px` 白边、左右区域各 `1500 × 1900`、中间 `100 px` 白缝。3D 系列暂未启用。
+
+## 构建与验证
+
+```powershell
+dotnet build EolTestPatternGenerator.sln -c Release
+dotnet .\src\EolTestPatternGenerator\bin\x64\Release\net8.0-windows\win-x64\EolTestPatternGenerator.dll --self-test
+dotnet .\src\EolTestPatternGenerator\bin\x64\Release\net8.0-windows\win-x64\EolTestPatternGenerator.dll --ui-smoke-test
+```
+
+`--self-test` 会验证：
+
+- 黑、白、红、绿、蓝整图的精确 BGR 色值及所有通道只含 `0/255`；
+- 三张 1号屏图的尺寸、文件名、边界、像素计数和黑区包围盒；
+- 六种 RGB 排列相对于默认 RGB 的逐像素通道置换。
+
+`--ui-smoke-test` 会在不显示窗口的情况下实例化主窗体与 RGB 相移窗体，检查 Designer 控件、事件和运行时初始化。

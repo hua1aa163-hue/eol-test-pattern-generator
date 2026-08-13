@@ -6,12 +6,17 @@ namespace EolTestPatternGenerator.Services;
 public static class PatternGenerator
 {
     private static readonly Scalar White = new(255, 255, 255);
+    private static readonly Scalar Red = new(0, 0, 255);
+    private static readonly Scalar Green = new(0, 255, 0);
+    private static readonly Scalar Blue = new(255, 0, 0);
 
     public static Mat Generate(PatternSettings settings)
     {
         Validate(settings);
 
-        var canvas = new Mat(settings.CanvasHeight, settings.CanvasWidth, MatType.CV_8UC3, Scalar.Black);
+        Mat canvas = settings.PatternType == PatternType.ImportedImage
+            ? LoadImportedImage(settings)
+            : new Mat(settings.CanvasHeight, settings.CanvasWidth, MatType.CV_8UC3, Scalar.Black);
 
         switch (settings.PatternType)
         {
@@ -39,12 +44,137 @@ public static class PatternGenerator
                 break;
             case PatternType.Black:
                 break;
+            case PatternType.FullWhite:
+                canvas.SetTo(White);
+                break;
+            case PatternType.FullRed:
+                canvas.SetTo(Red);
+                break;
+            case PatternType.FullGreen:
+                canvas.SetTo(Green);
+                break;
+            case PatternType.FullBlue:
+                canvas.SetTo(Blue);
+                break;
+            case PatternType.ScreenSplit:
+                DrawScreenSplit(canvas, settings);
+                break;
+            case PatternType.ImportedImage:
+                // 底图已在创建画布时解码、转换和缩放；下方仍会应用通用白框叠加层。
+                break;
             default:
                 canvas.Dispose();
                 throw new ArgumentOutOfRangeException(nameof(settings.PatternType), settings.PatternType, null);
         }
 
+        if (settings.BorderOverlay.Enabled)
+        {
+            DrawBorder(
+                canvas,
+                settings.BorderOverlay.X,
+                settings.BorderOverlay.Y,
+                settings.BorderOverlay.Width,
+                settings.BorderOverlay.Height,
+                settings.BorderOverlay.LineWidth);
+        }
+
         return canvas;
+    }
+
+    private static Mat LoadImportedImage(PatternSettings settings)
+    {
+        string sourcePath = settings.SourceImagePath?.Trim() ?? string.Empty;
+        if (sourcePath.Length == 0)
+        {
+            throw new InvalidOperationException("请选择要作为底图的图片文件。");
+        }
+
+        if (!File.Exists(sourcePath))
+        {
+            throw new FileNotFoundException($"底图文件不存在：{sourcePath}", sourcePath);
+        }
+
+        byte[] encodedBytes;
+        try
+        {
+            // File.ReadAllBytes 不依赖 OpenCV 的窄字符文件路径，可正确读取中文等 Unicode 路径。
+            encodedBytes = File.ReadAllBytes(sourcePath);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            throw new IOException($"无法读取底图文件：{sourcePath}", exception);
+        }
+
+        Mat decoded;
+        try
+        {
+            decoded = Cv2.ImDecode(encodedBytes, ImreadModes.Unchanged);
+        }
+        catch (Exception exception)
+        {
+            throw new InvalidDataException($"底图解码失败，请确认图片文件有效：{sourcePath}", exception);
+        }
+
+        using (decoded)
+        {
+            if (decoded.Empty())
+            {
+                throw new InvalidDataException($"底图解码失败，请确认图片文件有效：{sourcePath}");
+            }
+
+            using var bgr = new Mat();
+            try
+            {
+                switch (decoded.Channels())
+                {
+                    case 1:
+                        Cv2.CvtColor(decoded, bgr, ColorConversionCodes.GRAY2BGR);
+                        break;
+                    case 3:
+                        decoded.CopyTo(bgr);
+                        break;
+                    case 4:
+                        Cv2.CvtColor(decoded, bgr, ColorConversionCodes.BGRA2BGR);
+                        break;
+                    default:
+                        throw new InvalidDataException(
+                            $"底图通道数不受支持（{decoded.Channels()} 通道），请选择灰度、BGR 或 BGRA 图片：{sourcePath}");
+                }
+            }
+            catch (InvalidDataException)
+            {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                throw new InvalidDataException($"底图颜色格式转换失败：{sourcePath}", exception);
+            }
+
+            using var bgr8 = new Mat();
+            if (bgr.Type() == MatType.CV_8UC3)
+            {
+                bgr.CopyTo(bgr8);
+            }
+            else
+            {
+                bgr.ConvertTo(bgr8, MatType.CV_8UC3);
+            }
+
+            if (bgr8.Cols == settings.CanvasWidth && bgr8.Rows == settings.CanvasHeight)
+            {
+                return bgr8.Clone();
+            }
+
+            var resized = new Mat();
+            Cv2.Resize(
+                bgr8,
+                resized,
+                new OpenCvSharp.Size(settings.CanvasWidth, settings.CanvasHeight),
+                0,
+                0,
+                InterpolationFlags.Nearest);
+            return resized;
+        }
     }
 
     private static void Validate(PatternSettings settings)
@@ -85,45 +215,38 @@ public static class PatternGenerator
         {
             throw new ArgumentOutOfRangeException(nameof(settings), "线宽必须大于 0。");
         }
+
+        BorderOverlaySettings border = settings.BorderOverlay;
+        if (border.Enabled && (border.Width < 1 || border.Height < 1 || border.LineWidth < 1))
+        {
+            throw new ArgumentOutOfRangeException(nameof(settings), "白框叠加层的宽、高和线宽必须大于 0。");
+        }
     }
 
     private static void DrawBorder(Mat canvas, PatternSettings settings)
     {
-        int thickness = Math.Min(settings.LineWidth, Math.Min(settings.PatternWidth, settings.PatternHeight));
-        if ((2 * thickness) >= settings.PatternWidth || (2 * thickness) >= settings.PatternHeight)
+        DrawBorder(
+            canvas,
+            settings.PatternX,
+            settings.PatternY,
+            settings.PatternWidth,
+            settings.PatternHeight,
+            settings.LineWidth);
+    }
+
+    private static void DrawBorder(Mat canvas, int x, int y, int width, int height, int lineWidth)
+    {
+        int thickness = Math.Min(lineWidth, Math.Min(width, height));
+        if ((2 * thickness) >= width || (2 * thickness) >= height)
         {
-            FillRectangleClipped(
-                canvas,
-                settings.PatternX,
-                settings.PatternY,
-                settings.PatternWidth,
-                settings.PatternHeight,
-                White);
+            FillRectangleClipped(canvas, x, y, width, height, White);
             return;
         }
 
-        FillRectangleClipped(canvas, settings.PatternX, settings.PatternY, settings.PatternWidth, thickness, White);
-        FillRectangleClipped(
-            canvas,
-            settings.PatternX,
-            settings.PatternY + settings.PatternHeight - thickness,
-            settings.PatternWidth,
-            thickness,
-            White);
-        FillRectangleClipped(
-            canvas,
-            settings.PatternX,
-            settings.PatternY + thickness,
-            thickness,
-            settings.PatternHeight - (2 * thickness),
-            White);
-        FillRectangleClipped(
-            canvas,
-            settings.PatternX + settings.PatternWidth - thickness,
-            settings.PatternY + thickness,
-            thickness,
-            settings.PatternHeight - (2 * thickness),
-            White);
+        FillRectangleClipped(canvas, x, y, width, thickness, White);
+        FillRectangleClipped(canvas, x, y + height - thickness, width, thickness, White);
+        FillRectangleClipped(canvas, x, y + thickness, thickness, height - (2 * thickness), White);
+        FillRectangleClipped(canvas, x + width - thickness, y + thickness, thickness, height - (2 * thickness), White);
     }
 
     private static unsafe void DrawPhaseStripes(Mat canvas, PatternSettings settings)
@@ -149,11 +272,65 @@ public static class PatternGenerator
                 int phaseIndex = PositiveModulo(v - (3 * u) + settings.Phase - 1, 8);
                 int offset = x * 3;
 
-                // OpenCV 为 BGR 顺序；定义来自样图的 RGB 二值相位公式。
-                row[offset] = phaseIndex is >= 2 and <= 5 ? (byte)255 : (byte)0;
-                row[offset + 1] = phaseIndex is >= 1 and <= 4 ? (byte)255 : (byte)0;
-                row[offset + 2] = phaseIndex is >= 0 and <= 3 ? (byte)255 : (byte)0;
+                byte logicalR = phaseIndex is >= 0 and <= 3 ? (byte)255 : (byte)0;
+                byte logicalG = phaseIndex is >= 1 and <= 4 ? (byte)255 : (byte)0;
+                byte logicalB = phaseIndex is >= 2 and <= 5 ? (byte)255 : (byte)0;
+                (byte red, byte green, byte blue) = ApplyPixelOrder(
+                    logicalR,
+                    logicalG,
+                    logicalB,
+                    settings.PixelOrder);
+
+                // OpenCV 的内存通道顺序为 BGR。
+                row[offset] = blue;
+                row[offset + 1] = green;
+                row[offset + 2] = red;
             }
+        }
+    }
+
+    private static (byte Red, byte Green, byte Blue) ApplyPixelOrder(
+        byte red,
+        byte green,
+        byte blue,
+        RgbPixelOrder order)
+    {
+        return order switch
+        {
+            RgbPixelOrder.RGB => (red, green, blue),
+            RgbPixelOrder.RBG => (red, blue, green),
+            RgbPixelOrder.GRB => (green, red, blue),
+            RgbPixelOrder.GBR => (green, blue, red),
+            RgbPixelOrder.BRG => (blue, red, green),
+            RgbPixelOrder.BGR => (blue, green, red),
+            _ => throw new ArgumentOutOfRangeException(nameof(order), order, null)
+        };
+    }
+
+    private static void DrawScreenSplit(Mat canvas, PatternSettings settings)
+    {
+        canvas.SetTo(White);
+
+        switch (settings.ScreenSplitMode)
+        {
+            case ScreenSplitMode.TwoDimensionalBlackLeft:
+                FillRectangleClipped(canvas, 50, 50, 1500, 1900, Scalar.Black);
+                break;
+            case ScreenSplitMode.TwoDimensionalBlackRight:
+                FillRectangleClipped(canvas, 1650, 50, 1500, 1900, Scalar.Black);
+                break;
+            case ScreenSplitMode.TwoDimensionalBlackBoth:
+                FillRectangleClipped(canvas, 50, 50, 1500, 1900, Scalar.Black);
+                FillRectangleClipped(canvas, 1650, 50, 1500, 1900, Scalar.Black);
+                break;
+            case ScreenSplitMode.ThreeDimensionalBlackRight:
+                FillRectangleClipped(canvas, 3250, 50, 3100, 1900, Scalar.Black);
+                break;
+            case ScreenSplitMode.ThreeDimensionalBlackLeft:
+                FillRectangleClipped(canvas, 50, 50, 3100, 1900, Scalar.Black);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(settings.ScreenSplitMode), settings.ScreenSplitMode, null);
         }
     }
 

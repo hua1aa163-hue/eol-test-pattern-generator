@@ -10,7 +10,6 @@ partial class MainForm
     {
         if (disposing)
         {
-            previewPictureBox.Image?.Dispose();
             components?.Dispose();
         }
 
@@ -29,6 +28,7 @@ partial class MainForm
         numericPhase = new NumericUpDown();
         labelPhase = new Label();
         comboPattern = new ComboBox();
+        buttonBrowseSourceImage = new Button();
         labelPatternType = new Label();
         groupCanvas = new GroupBox();
         numericCanvasHeight = new NumericUpDown();
@@ -56,6 +56,8 @@ partial class MainForm
         numericDotRadius = new NumericUpDown();
         labelDotRadius = new Label();
         labelDotHelp = new Label();
+        groupBorderOverlay = new GroupBox();
+        borderOverlayEditor = new EolTestPatternGenerator.Controls.BorderOverlayEditor();
         groupExport = new GroupBox();
         labelExportHelp = new Label();
         numericQuality = new NumericUpDown();
@@ -67,7 +69,10 @@ partial class MainForm
         buttonSaveCurrent = new Button();
         buttonReset = new Button();
         buttonRefresh = new Button();
-        previewPictureBox = new PictureBox();
+        buttonPhaseTool = new Button();
+        buttonExportScreen1 = new Button();
+        buttonExportScreen1Stereo = new Button();
+        imagePreviewControl = new EolTestPatternGenerator.Controls.ImagePreviewControl();
         previewHeaderPanel = new Panel();
         labelPreviewInfo = new Label();
         statusStrip = new StatusStrip();
@@ -75,6 +80,7 @@ partial class MainForm
         previewTimer = new System.Windows.Forms.Timer(components);
         saveFileDialog = new SaveFileDialog();
         folderBrowserDialog = new FolderBrowserDialog();
+        openImageDialog = new OpenFileDialog();
         toolTip = new ToolTip(components);
         ((System.ComponentModel.ISupportInitialize)splitContainerMain).BeginInit();
         splitContainerMain.Panel1.SuspendLayout();
@@ -96,10 +102,10 @@ partial class MainForm
         ((System.ComponentModel.ISupportInitialize)numericRows).BeginInit();
         ((System.ComponentModel.ISupportInitialize)numericLineWidth).BeginInit();
         ((System.ComponentModel.ISupportInitialize)numericDotRadius).BeginInit();
+        groupBorderOverlay.SuspendLayout();
         groupExport.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)numericQuality).BeginInit();
         groupActions.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)previewPictureBox).BeginInit();
         previewHeaderPanel.SuspendLayout();
         statusStrip.SuspendLayout();
         SuspendLayout();
@@ -119,8 +125,8 @@ partial class MainForm
         // 
         // splitContainerMain.Panel2
         // 
-        splitContainerMain.Panel2.BackColor = Color.FromArgb(28, 30, 34);
-        splitContainerMain.Panel2.Controls.Add(previewPictureBox);
+        splitContainerMain.Panel2.BackColor = Color.FromArgb(224, 228, 234);
+        splitContainerMain.Panel2.Controls.Add(imagePreviewControl);
         splitContainerMain.Panel2.Controls.Add(previewHeaderPanel);
         splitContainerMain.Panel2MinSize = 500;
         splitContainerMain.Size = new Size(1380, 838);
@@ -135,6 +141,7 @@ partial class MainForm
         settingsFlowPanel.Controls.Add(groupCanvas);
         settingsFlowPanel.Controls.Add(groupPlacement);
         settingsFlowPanel.Controls.Add(groupShape);
+        settingsFlowPanel.Controls.Add(groupBorderOverlay);
         settingsFlowPanel.Controls.Add(groupExport);
         settingsFlowPanel.Controls.Add(groupActions);
         settingsFlowPanel.Dock = DockStyle.Fill;
@@ -149,13 +156,14 @@ partial class MainForm
         // groupPattern
         // 
         groupPattern.Controls.Add(labelPatternHelp);
+        groupPattern.Controls.Add(buttonBrowseSourceImage);
         groupPattern.Controls.Add(numericPhase);
         groupPattern.Controls.Add(labelPhase);
         groupPattern.Controls.Add(comboPattern);
         groupPattern.Controls.Add(labelPatternType);
         groupPattern.Location = new Point(13, 13);
         groupPattern.Name = "groupPattern";
-        groupPattern.Size = new Size(367, 157);
+        groupPattern.Size = new Size(367, 122);
         groupPattern.TabIndex = 0;
         groupPattern.TabStop = false;
         groupPattern.Text = "图卡类型";
@@ -163,7 +171,7 @@ partial class MainForm
         // labelPatternHelp
         // 
         labelPatternHelp.ForeColor = Color.DimGray;
-        labelPatternHelp.Location = new Point(18, 102);
+        labelPatternHelp.Location = new Point(18, 67);
         labelPatternHelp.Name = "labelPatternHelp";
         labelPatternHelp.Size = new Size(331, 43);
         labelPatternHelp.TabIndex = 4;
@@ -175,6 +183,7 @@ partial class MainForm
         numericPhase.Maximum = new decimal(new int[] { 8, 0, 0, 0 });
         numericPhase.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericPhase.Name = "numericPhase";
+        numericPhase.Visible = false;
         numericPhase.Size = new Size(98, 27);
         numericPhase.TabIndex = 3;
         numericPhase.Value = new decimal(new int[] { 1, 0, 0, 0 });
@@ -185,6 +194,7 @@ partial class MainForm
         labelPhase.AutoSize = true;
         labelPhase.Location = new Point(18, 70);
         labelPhase.Name = "labelPhase";
+        labelPhase.Visible = false;
         labelPhase.Size = new Size(75, 20);
         labelPhase.TabIndex = 2;
         labelPhase.Text = "相位(1-8)";
@@ -193,12 +203,22 @@ partial class MainForm
         // 
         comboPattern.DropDownStyle = ComboBoxStyle.DropDownList;
         comboPattern.FormattingEnabled = true;
-        comboPattern.Items.AddRange(new object[] { "外框（0.png）", "RGB 八步相移条纹（1-8.png）", "九点图", "畸变点阵（27×7）", "上下校正十字", "白色矩形", "全黑图" });
         comboPattern.Location = new Point(112, 28);
         comboPattern.Name = "comboPattern";
         comboPattern.Size = new Size(237, 28);
         comboPattern.TabIndex = 1;
         comboPattern.SelectedIndexChanged += comboPattern_SelectedIndexChanged;
+        //
+        // buttonBrowseSourceImage
+        //
+        buttonBrowseSourceImage.Location = new Point(216, 66);
+        buttonBrowseSourceImage.Name = "buttonBrowseSourceImage";
+        buttonBrowseSourceImage.Size = new Size(133, 32);
+        buttonBrowseSourceImage.TabIndex = 5;
+        buttonBrowseSourceImage.Text = "选择底图...";
+        buttonBrowseSourceImage.UseVisualStyleBackColor = true;
+        buttonBrowseSourceImage.Visible = false;
+        buttonBrowseSourceImage.Click += buttonBrowseSourceImage_Click;
         // 
         // labelPatternType
         // 
@@ -489,6 +509,25 @@ partial class MainForm
         labelDotHelp.Size = new Size(331, 42);
         labelDotHelp.TabIndex = 8;
         labelDotHelp.Text = "默认半径 4，直径为 2r+1=9 px；点阵行列数也可调整。";
+        //
+        // groupBorderOverlay
+        //
+        groupBorderOverlay.Controls.Add(borderOverlayEditor);
+        groupBorderOverlay.Location = new Point(13, 679);
+        groupBorderOverlay.Name = "groupBorderOverlay";
+        groupBorderOverlay.Size = new Size(367, 226);
+        groupBorderOverlay.TabIndex = 4;
+        groupBorderOverlay.TabStop = false;
+        groupBorderOverlay.Text = "白框叠加层（可应用于任意底图）";
+        //
+        // borderOverlayEditor
+        //
+        borderOverlayEditor.CanvasSize = new Size(1920, 1080);
+        borderOverlayEditor.Location = new Point(14, 26);
+        borderOverlayEditor.Name = "borderOverlayEditor";
+        borderOverlayEditor.Size = new Size(335, 188);
+        borderOverlayEditor.TabIndex = 0;
+        borderOverlayEditor.SettingsChanged += borderOverlayEditor_SettingsChanged;
         // 
         // groupExport
         // 
@@ -497,10 +536,10 @@ partial class MainForm
         groupExport.Controls.Add(labelQuality);
         groupExport.Controls.Add(comboOutputFormat);
         groupExport.Controls.Add(labelOutputFormat);
-        groupExport.Location = new Point(13, 679);
+        groupExport.Location = new Point(13, 911);
         groupExport.Name = "groupExport";
         groupExport.Size = new Size(367, 145);
-        groupExport.TabIndex = 4;
+        groupExport.TabIndex = 5;
         groupExport.TabStop = false;
         groupExport.Text = "导出格式";
         // 
@@ -558,10 +597,13 @@ partial class MainForm
         groupActions.Controls.Add(buttonSaveCurrent);
         groupActions.Controls.Add(buttonReset);
         groupActions.Controls.Add(buttonRefresh);
-        groupActions.Location = new Point(13, 830);
+        groupActions.Controls.Add(buttonPhaseTool);
+        groupActions.Controls.Add(buttonExportScreen1);
+        groupActions.Controls.Add(buttonExportScreen1Stereo);
+        groupActions.Location = new Point(13, 1062);
         groupActions.Name = "groupActions";
-        groupActions.Size = new Size(367, 132);
-        groupActions.TabIndex = 5;
+        groupActions.Size = new Size(367, 226);
+        groupActions.TabIndex = 6;
         groupActions.TabStop = false;
         groupActions.Text = "生成与保存";
         // 
@@ -571,9 +613,40 @@ partial class MainForm
         buttonBatchExport.Name = "buttonBatchExport";
         buttonBatchExport.Size = new Size(157, 38);
         buttonBatchExport.TabIndex = 3;
-        buttonBatchExport.Text = "批量导出全部 14 张";
+        buttonBatchExport.Text = "批量导出主图 10 张";
         buttonBatchExport.UseVisualStyleBackColor = true;
         buttonBatchExport.Click += buttonBatchExport_Click;
+        //
+        // buttonPhaseTool
+        //
+        buttonPhaseTool.Location = new Point(18, 122);
+        buttonPhaseTool.Name = "buttonPhaseTool";
+        buttonPhaseTool.Size = new Size(331, 38);
+        buttonPhaseTool.TabIndex = 4;
+        buttonPhaseTool.Text = "打开 RGB 八步相移条纹工具...";
+        buttonPhaseTool.UseVisualStyleBackColor = true;
+        buttonPhaseTool.Click += buttonPhaseTool_Click;
+        //
+        // buttonExportScreen1
+        //
+        buttonExportScreen1.Location = new Point(18, 169);
+        buttonExportScreen1.Name = "buttonExportScreen1";
+        buttonExportScreen1.Size = new Size(331, 38);
+        buttonExportScreen1.TabIndex = 5;
+        buttonExportScreen1.Text = "导出1号屏参考图（3张）";
+        buttonExportScreen1.UseVisualStyleBackColor = true;
+        buttonExportScreen1.Click += buttonExportScreen1_Click;
+        //
+        // buttonExportScreen1Stereo
+        //
+        buttonExportScreen1Stereo.Location = new Point(192, 169);
+        buttonExportScreen1Stereo.Name = "buttonExportScreen1Stereo";
+        buttonExportScreen1Stereo.Size = new Size(157, 38);
+        buttonExportScreen1Stereo.TabIndex = 6;
+        buttonExportScreen1Stereo.Text = "3D系列（暂未启用）";
+        buttonExportScreen1Stereo.UseVisualStyleBackColor = true;
+        buttonExportScreen1Stereo.Visible = false;
+        buttonExportScreen1Stereo.Click += buttonExportScreen1Stereo_Click;
         // 
         // buttonSaveCurrent
         // 
@@ -605,16 +678,14 @@ partial class MainForm
         buttonRefresh.UseVisualStyleBackColor = true;
         buttonRefresh.Click += buttonRefresh_Click;
         // 
-        // previewPictureBox
+        // imagePreviewControl
         // 
-        previewPictureBox.BackColor = Color.Black;
-        previewPictureBox.Dock = DockStyle.Fill;
-        previewPictureBox.Location = new Point(0, 44);
-        previewPictureBox.Name = "previewPictureBox";
-        previewPictureBox.Size = new Size(969, 794);
-        previewPictureBox.SizeMode = PictureBoxSizeMode.Zoom;
-        previewPictureBox.TabIndex = 1;
-        previewPictureBox.TabStop = false;
+        imagePreviewControl.BackColor = Color.FromArgb(224, 228, 234);
+        imagePreviewControl.Dock = DockStyle.Fill;
+        imagePreviewControl.Location = new Point(0, 44);
+        imagePreviewControl.Name = "imagePreviewControl";
+        imagePreviewControl.Size = new Size(969, 794);
+        imagePreviewControl.TabIndex = 1;
         // 
         // previewHeaderPanel
         // 
@@ -665,6 +736,12 @@ partial class MainForm
         // 
         folderBrowserDialog.Description = "选择批量导出目录";
         folderBrowserDialog.UseDescriptionForTitle = true;
+        //
+        // openImageDialog
+        //
+        openImageDialog.CheckFileExists = true;
+        openImageDialog.Filter = "图片文件|*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.tiff;*.webp|所有文件|*.*";
+        openImageDialog.Title = "选择要添加白框的底图";
         // 
         // MainForm
         // 
@@ -678,6 +755,7 @@ partial class MainForm
         Name = "MainForm";
         StartPosition = FormStartPosition.CenterScreen;
         Text = "EOL 图卡生成器 - OpenCvSharp";
+        FormClosing += MainForm_FormClosing;
         FormClosed += MainForm_FormClosed;
         splitContainerMain.Panel1.ResumeLayout(false);
         splitContainerMain.Panel2.ResumeLayout(false);
@@ -703,11 +781,11 @@ partial class MainForm
         ((System.ComponentModel.ISupportInitialize)numericRows).EndInit();
         ((System.ComponentModel.ISupportInitialize)numericLineWidth).EndInit();
         ((System.ComponentModel.ISupportInitialize)numericDotRadius).EndInit();
+        groupBorderOverlay.ResumeLayout(false);
         groupExport.ResumeLayout(false);
         groupExport.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)numericQuality).EndInit();
         groupActions.ResumeLayout(false);
-        ((System.ComponentModel.ISupportInitialize)previewPictureBox).EndInit();
         previewHeaderPanel.ResumeLayout(false);
         previewHeaderPanel.PerformLayout();
         statusStrip.ResumeLayout(false);
@@ -725,6 +803,7 @@ partial class MainForm
     private NumericUpDown numericPhase;
     private Label labelPhase;
     private ComboBox comboPattern;
+    private Button buttonBrowseSourceImage;
     private Label labelPatternType;
     private GroupBox groupCanvas;
     private NumericUpDown numericCanvasHeight;
@@ -752,6 +831,8 @@ partial class MainForm
     private NumericUpDown numericDotRadius;
     private Label labelDotRadius;
     private Label labelDotHelp;
+    private GroupBox groupBorderOverlay;
+    private EolTestPatternGenerator.Controls.BorderOverlayEditor borderOverlayEditor;
     private GroupBox groupExport;
     private Label labelExportHelp;
     private NumericUpDown numericQuality;
@@ -763,7 +844,10 @@ partial class MainForm
     private Button buttonSaveCurrent;
     private Button buttonReset;
     private Button buttonRefresh;
-    private PictureBox previewPictureBox;
+    private Button buttonPhaseTool;
+    private Button buttonExportScreen1;
+    private Button buttonExportScreen1Stereo;
+    private EolTestPatternGenerator.Controls.ImagePreviewControl imagePreviewControl;
     private Panel previewHeaderPanel;
     private Label labelPreviewInfo;
     private StatusStrip statusStrip;
@@ -771,5 +855,6 @@ partial class MainForm
     private System.Windows.Forms.Timer previewTimer;
     private SaveFileDialog saveFileDialog;
     private FolderBrowserDialog folderBrowserDialog;
+    private OpenFileDialog openImageDialog;
     private ToolTip toolTip;
 }

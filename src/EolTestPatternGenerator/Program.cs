@@ -8,6 +8,24 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        if (args.Length >= 1 && args[0].Equals("--self-test", StringComparison.OrdinalIgnoreCase))
+        {
+            GeneratedPatternVerifier.RunAll();
+            Console.WriteLine("图卡像素自检通过。");
+            return 0;
+        }
+
+        if (args.Length >= 1 && args[0].Equals("--ui-smoke-test", StringComparison.OrdinalIgnoreCase))
+        {
+            ApplicationConfiguration.Initialize();
+            using var mainForm = new MainForm();
+            using var phaseStripeForm = new PhaseStripeForm();
+            _ = mainForm.Handle;
+            _ = phaseStripeForm.Handle;
+            Console.WriteLine("WinForms 界面构造自检通过。");
+            return 0;
+        }
+
         if (args.Length >= 2 && args[0].Equals("--export-defaults", StringComparison.OrdinalIgnoreCase))
         {
             ImageFormatKind format = args.Length >= 3 ? ParseFormat(args[2]) : ImageFormatKind.Png;

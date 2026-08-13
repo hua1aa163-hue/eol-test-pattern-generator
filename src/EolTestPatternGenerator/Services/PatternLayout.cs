@@ -17,6 +17,16 @@ public static class PatternLayout
             return;
         }
 
+        if (settings.PatternType is PatternType.Black or PatternType.FullWhite or PatternType.FullRed or
+            PatternType.FullGreen or PatternType.FullBlue)
+        {
+            settings.PatternX = 0;
+            settings.PatternY = 0;
+            settings.PatternWidth = settings.CanvasWidth;
+            settings.PatternHeight = settings.CanvasHeight;
+            return;
+        }
+
         settings.PatternX = (int)Math.Floor((settings.CanvasWidth - settings.PatternWidth) / 2.0);
         settings.PatternY = (int)Math.Floor((settings.CanvasHeight - settings.PatternHeight) / 2.0);
     }

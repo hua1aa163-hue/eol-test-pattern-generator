@@ -30,6 +30,8 @@ public sealed class PatternSettings
 
     public int Phase { get; set; } = 1;
 
+    public RgbPixelOrder PixelOrder { get; set; } = RgbPixelOrder.RGB;
+
     public int DotRadius { get; set; } = 4;
 
     public int Rows { get; set; } = 3;
@@ -38,8 +40,20 @@ public sealed class PatternSettings
 
     public int LineWidth { get; set; } = 5;
 
+    public ScreenSplitMode ScreenSplitMode { get; set; } = ScreenSplitMode.TwoDimensionalBlackLeft;
+
+    /// <summary>
+    /// 导入图片图卡的底图路径。由生成器以 Unicode 安全方式读取。
+    /// </summary>
+    public string SourceImagePath { get; set; } = string.Empty;
+
+    public BorderOverlaySettings BorderOverlay { get; set; } = new();
+
     public PatternSettings Clone()
     {
-        return (PatternSettings)MemberwiseClone();
+        var clone = (PatternSettings)MemberwiseClone();
+        clone.SourceImagePath = SourceImagePath;
+        clone.BorderOverlay = BorderOverlay.Clone();
+        return clone;
     }
 }
