@@ -1,5 +1,6 @@
 using EolTestPatternGenerator.Models;
 using EolTestPatternGenerator.Services;
+using System.ComponentModel;
 
 namespace EolTestPatternGenerator;
 
@@ -11,20 +12,48 @@ public partial class PhaseStripeForm : Form
     private bool _updatingControls;
     private bool _isRendering;
     private bool _isExporting;
+    private bool _userInterfaceInitialized;
 
     public PhaseStripeForm()
     {
         InitializeComponent();
+    }
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+
+        // 设计器只需要 InitializeComponent 创建控件，不能在设计时生成 OpenCV 图像。
+        if (_userInterfaceInitialized ||
+            DesignMode ||
+            LicenseManager.UsageMode == LicenseUsageMode.Designtime)
+        {
+            return;
+        }
+
+        _userInterfaceInitialized = true;
         InitializeUserInterface();
     }
 
     private void InitializeUserInterface()
     {
+        PhaseStripePreferences preferences = UserSettingsStore.Shared.Load().PhaseStripe;
         _updatingControls = true;
         try
         {
-            comboPixelOrder.SelectedIndex = 0;
-            comboOutputFormat.SelectedIndex = (int)ImageFormatKind.Png;
+            WriteSettings(preferences.Settings);
+            comboPixelOrder.SelectedItem = preferences.Settings.PixelOrder.ToString();
+            if (comboPixelOrder.SelectedIndex < 0)
+            {
+                comboPixelOrder.SelectedIndex = 0;
+            }
+
+            comboOutputFormat.SelectedIndex = Enum.IsDefined(preferences.OutputFormat)
+                ? (int)preferences.OutputFormat
+                : (int)ImageFormatKind.Png;
+            SetNumericValue(numericQuality, preferences.Quality);
+            previewControl.ShowCenterCrosshair = preferences.PreviewOverlay.ShowCenterCrosshair;
+            previewControl.ShowPixelCoordinates = preferences.PreviewOverlay.ShowPixelCoordinates;
             UpdateBorderCanvasSize();
         }
         finally
@@ -40,6 +69,20 @@ public partial class PhaseStripeForm : Form
 
         UpdateControlAvailability();
         UpdatePreview(resetView: true);
+    }
+
+    /// <summary>将保存的相移参数安全回写到设计器输入控件。</summary>
+    private void WriteSettings(PatternSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        SetNumericValue(numericCanvasWidth, settings.CanvasWidth);
+        SetNumericValue(numericCanvasHeight, settings.CanvasHeight);
+        SetNumericValue(numericPatternX, settings.PatternX);
+        SetNumericValue(numericPatternY, settings.PatternY);
+        SetNumericValue(numericPatternWidth, settings.PatternWidth);
+        SetNumericValue(numericPatternHeight, settings.PatternHeight);
+        SetNumericValue(numericPhase, settings.Phase);
+        borderOverlayEditor.SetSettings(settings.BorderOverlay ?? new BorderOverlaySettings());
     }
 
     private void Parameter_ValueChanged(object? sender, EventArgs e)
@@ -318,6 +361,7 @@ public partial class PhaseStripeForm : Form
         ImageExportOptions exportOptions = ReadExportOptions();
         string outputDirectory = folderBrowserDialog.SelectedPath;
         string extension = ImageFileWriter.GetExtension(exportOptions.Format);
+        // 开始后台任务前冻结八个相位的全部设置，避免用户操作改变正在导出的批次。
         PatternSettings[] settings = Enumerable.Range(1, 8).Select(phase => ReadSettings(phase)).ToArray();
         string exportedOrder = SelectedPixelOrder;
         string[] targetPaths = settings
@@ -384,20 +428,54 @@ public partial class PhaseStripeForm : Form
         }
     }
 
+    private void buttonNonIntegerFusion_Click(object? sender, EventArgs e)
+    {
+        using var form = new NonIntegerFusionForm();
+        form.ShowDialog(this);
+    }
+
     private void PhaseStripeForm_FormClosing(object? sender, FormClosingEventArgs e)
     {
-        if (!_isExporting)
+        if (_isExporting)
         {
+            e.Cancel = true;
+            MessageBox.Show(
+                this,
+                "相位图正在导出，请等待导出完成后再关闭窗口。",
+                "正在导出",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
             return;
         }
 
-        e.Cancel = true;
-        MessageBox.Show(
-            this,
-            "相位图正在导出，请等待导出完成后再关闭窗口。",
-            "正在导出",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information);
+        SaveUserPreferences();
+    }
+
+    private void SaveUserPreferences()
+    {
+        var preferences = new PhaseStripePreferences
+        {
+            Settings = ReadSettings(),
+            OutputFormat = SelectedFormat,
+            Quality = (int)numericQuality.Value,
+            PreviewOverlay = new PreviewOverlayPreferences
+            {
+                ShowCenterCrosshair = previewControl.ShowCenterCrosshair,
+                ShowPixelCoordinates = previewControl.ShowPixelCoordinates
+            }
+        };
+
+        if (!UserSettingsStore.Shared.TryUpdateAndSave(
+                root => root.PhaseStripe = preferences,
+                out Exception? error))
+        {
+            MessageBox.Show(
+                this,
+                $"无法保存上次输入值：{error?.Message}",
+                "保存设置失败",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private void PhaseStripeForm_FormClosed(object? sender, FormClosedEventArgs e)

@@ -24,11 +24,13 @@ partial class MainForm
         splitContainerMain = new SplitContainer();
         settingsFlowPanel = new FlowLayoutPanel();
         groupPattern = new GroupBox();
+        buttonPhaseTool = new Button();
+        buttonExportScreen1 = new Button();
         labelPatternHelp = new Label();
+        buttonBrowseSourceImage = new Button();
         numericPhase = new NumericUpDown();
         labelPhase = new Label();
         comboPattern = new ComboBox();
-        buttonBrowseSourceImage = new Button();
         labelPatternType = new Label();
         groupCanvas = new GroupBox();
         numericCanvasHeight = new NumericUpDown();
@@ -69,9 +71,6 @@ partial class MainForm
         buttonSaveCurrent = new Button();
         buttonReset = new Button();
         buttonRefresh = new Button();
-        buttonPhaseTool = new Button();
-        buttonExportScreen1 = new Button();
-        buttonExportScreen1Stereo = new Button();
         imagePreviewControl = new EolTestPatternGenerator.Controls.ImagePreviewControl();
         previewHeaderPanel = new Panel();
         labelPreviewInfo = new Label();
@@ -115,6 +114,7 @@ partial class MainForm
         splitContainerMain.Dock = DockStyle.Fill;
         splitContainerMain.FixedPanel = FixedPanel.Panel1;
         splitContainerMain.Location = new Point(0, 0);
+        splitContainerMain.Margin = new Padding(4);
         splitContainerMain.Name = "splitContainerMain";
         // 
         // splitContainerMain.Panel1
@@ -129,9 +129,9 @@ partial class MainForm
         splitContainerMain.Panel2.Controls.Add(imagePreviewControl);
         splitContainerMain.Panel2.Controls.Add(previewHeaderPanel);
         splitContainerMain.Panel2MinSize = 500;
-        splitContainerMain.Size = new Size(1380, 838);
-        splitContainerMain.SplitterDistance = 405;
-        splitContainerMain.SplitterWidth = 6;
+        splitContainerMain.Size = new Size(2070, 1259);
+        splitContainerMain.SplitterDistance = 608;
+        splitContainerMain.SplitterWidth = 9;
         splitContainerMain.TabIndex = 0;
         // 
         // settingsFlowPanel
@@ -147,85 +147,119 @@ partial class MainForm
         settingsFlowPanel.Dock = DockStyle.Fill;
         settingsFlowPanel.FlowDirection = FlowDirection.TopDown;
         settingsFlowPanel.Location = new Point(0, 0);
+        settingsFlowPanel.Margin = new Padding(4);
         settingsFlowPanel.Name = "settingsFlowPanel";
-        settingsFlowPanel.Padding = new Padding(10, 10, 8, 16);
-        settingsFlowPanel.Size = new Size(405, 838);
+        settingsFlowPanel.Padding = new Padding(15, 15, 12, 24);
+        settingsFlowPanel.Size = new Size(608, 1259);
         settingsFlowPanel.TabIndex = 0;
         settingsFlowPanel.WrapContents = false;
         // 
         // groupPattern
         // 
+        groupPattern.Controls.Add(buttonPhaseTool);
+        groupPattern.Controls.Add(buttonExportScreen1);
         groupPattern.Controls.Add(labelPatternHelp);
         groupPattern.Controls.Add(buttonBrowseSourceImage);
         groupPattern.Controls.Add(numericPhase);
         groupPattern.Controls.Add(labelPhase);
         groupPattern.Controls.Add(comboPattern);
         groupPattern.Controls.Add(labelPatternType);
-        groupPattern.Location = new Point(13, 13);
+        groupPattern.Location = new Point(19, 19);
+        groupPattern.Margin = new Padding(4);
         groupPattern.Name = "groupPattern";
-        groupPattern.Size = new Size(367, 122);
+        groupPattern.Padding = new Padding(4);
+        groupPattern.Size = new Size(550, 257);
         groupPattern.TabIndex = 0;
         groupPattern.TabStop = false;
         groupPattern.Text = "图卡类型";
         // 
+        // buttonPhaseTool
+        // 
+        buttonPhaseTool.Location = new Point(46, 168);
+        buttonPhaseTool.Margin = new Padding(4);
+        buttonPhaseTool.Name = "buttonPhaseTool";
+        buttonPhaseTool.Size = new Size(216, 57);
+        buttonPhaseTool.TabIndex = 6;
+        buttonPhaseTool.Text = "串扰图";
+        buttonPhaseTool.UseVisualStyleBackColor = true;
+        buttonPhaseTool.Click += buttonPhaseTool_Click_1;
+        // 
+        // buttonExportScreen1
+        // 
+        buttonExportScreen1.Location = new Point(305, 168);
+        buttonExportScreen1.Margin = new Padding(4);
+        buttonExportScreen1.Name = "buttonExportScreen1";
+        buttonExportScreen1.Size = new Size(217, 57);
+        buttonExportScreen1.TabIndex = 7;
+        buttonExportScreen1.Text = "显示器3D图";
+        buttonExportScreen1.UseVisualStyleBackColor = true;
+        buttonExportScreen1.Click += buttonExportScreen1_Click_1;
+        // 
         // labelPatternHelp
         // 
         labelPatternHelp.ForeColor = Color.DimGray;
-        labelPatternHelp.Location = new Point(18, 67);
+        labelPatternHelp.Location = new Point(27, 100);
+        labelPatternHelp.Margin = new Padding(4, 0, 4, 0);
         labelPatternHelp.Name = "labelPatternHelp";
-        labelPatternHelp.Size = new Size(331, 43);
+        labelPatternHelp.Size = new Size(496, 64);
         labelPatternHelp.TabIndex = 4;
         labelPatternHelp.Text = "外框、相移、白图使用矩形区域；点阵使用首个圆心和圆心跨度。";
         // 
-        // numericPhase
-        // 
-        numericPhase.Location = new Point(112, 66);
-        numericPhase.Maximum = new decimal(new int[] { 8, 0, 0, 0 });
-        numericPhase.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-        numericPhase.Name = "numericPhase";
-        numericPhase.Visible = false;
-        numericPhase.Size = new Size(98, 27);
-        numericPhase.TabIndex = 3;
-        numericPhase.Value = new decimal(new int[] { 1, 0, 0, 0 });
-        numericPhase.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelPhase
-        // 
-        labelPhase.AutoSize = true;
-        labelPhase.Location = new Point(18, 70);
-        labelPhase.Name = "labelPhase";
-        labelPhase.Visible = false;
-        labelPhase.Size = new Size(75, 20);
-        labelPhase.TabIndex = 2;
-        labelPhase.Text = "相位(1-8)";
-        // 
-        // comboPattern
-        // 
-        comboPattern.DropDownStyle = ComboBoxStyle.DropDownList;
-        comboPattern.FormattingEnabled = true;
-        comboPattern.Location = new Point(112, 28);
-        comboPattern.Name = "comboPattern";
-        comboPattern.Size = new Size(237, 28);
-        comboPattern.TabIndex = 1;
-        comboPattern.SelectedIndexChanged += comboPattern_SelectedIndexChanged;
-        //
         // buttonBrowseSourceImage
-        //
-        buttonBrowseSourceImage.Location = new Point(216, 66);
+        // 
+        buttonBrowseSourceImage.Location = new Point(324, 99);
+        buttonBrowseSourceImage.Margin = new Padding(4);
         buttonBrowseSourceImage.Name = "buttonBrowseSourceImage";
-        buttonBrowseSourceImage.Size = new Size(133, 32);
+        buttonBrowseSourceImage.Size = new Size(200, 48);
         buttonBrowseSourceImage.TabIndex = 5;
         buttonBrowseSourceImage.Text = "选择底图...";
         buttonBrowseSourceImage.UseVisualStyleBackColor = true;
         buttonBrowseSourceImage.Visible = false;
         buttonBrowseSourceImage.Click += buttonBrowseSourceImage_Click;
         // 
+        // numericPhase
+        // 
+        numericPhase.Location = new Point(168, 99);
+        numericPhase.Margin = new Padding(4);
+        numericPhase.Maximum = new decimal(new int[] { 8, 0, 0, 0 });
+        numericPhase.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+        numericPhase.Name = "numericPhase";
+        numericPhase.Size = new Size(147, 30);
+        numericPhase.TabIndex = 3;
+        numericPhase.Value = new decimal(new int[] { 1, 0, 0, 0 });
+        numericPhase.Visible = false;
+        numericPhase.ValueChanged += Parameter_ValueChanged;
+        // 
+        // labelPhase
+        // 
+        labelPhase.AutoSize = true;
+        labelPhase.Location = new Point(27, 105);
+        labelPhase.Margin = new Padding(4, 0, 4, 0);
+        labelPhase.Name = "labelPhase";
+        labelPhase.Size = new Size(88, 24);
+        labelPhase.TabIndex = 2;
+        labelPhase.Text = "相位(1-8)";
+        labelPhase.Visible = false;
+        // 
+        // comboPattern
+        // 
+        comboPattern.DropDownStyle = ComboBoxStyle.DropDownList;
+        comboPattern.FormattingEnabled = true;
+        comboPattern.Items.AddRange(new object[] { "外框（兼容 0.png）", "九点图", "畸变点阵（27×7）", "上下校正十字", "白色矩形", "全黑图（RGB 仅 0）", "全白图（RGB 仅 255）", "全红图（255,0,0）", "全绿图（0,255,0）", "全蓝图（0,0,255）", "导入图片并添加白框" });
+        comboPattern.Location = new Point(168, 42);
+        comboPattern.Margin = new Padding(4);
+        comboPattern.Name = "comboPattern";
+        comboPattern.Size = new Size(354, 32);
+        comboPattern.TabIndex = 1;
+        comboPattern.SelectedIndexChanged += comboPattern_SelectedIndexChanged;
+        // 
         // labelPatternType
         // 
         labelPatternType.AutoSize = true;
-        labelPatternType.Location = new Point(18, 32);
+        labelPatternType.Location = new Point(27, 48);
+        labelPatternType.Margin = new Padding(4, 0, 4, 0);
         labelPatternType.Name = "labelPatternType";
-        labelPatternType.Size = new Size(69, 20);
+        labelPatternType.Size = new Size(82, 24);
         labelPatternType.TabIndex = 0;
         labelPatternType.Text = "图卡类型";
         // 
@@ -235,20 +269,23 @@ partial class MainForm
         groupCanvas.Controls.Add(labelCanvasHeight);
         groupCanvas.Controls.Add(numericCanvasWidth);
         groupCanvas.Controls.Add(labelCanvasWidth);
-        groupCanvas.Location = new Point(13, 176);
+        groupCanvas.Location = new Point(19, 284);
+        groupCanvas.Margin = new Padding(4);
         groupCanvas.Name = "groupCanvas";
-        groupCanvas.Size = new Size(367, 106);
+        groupCanvas.Padding = new Padding(4);
+        groupCanvas.Size = new Size(550, 159);
         groupCanvas.TabIndex = 1;
         groupCanvas.TabStop = false;
         groupCanvas.Text = "输出画布（可修改）";
         // 
         // numericCanvasHeight
         // 
-        numericCanvasHeight.Location = new Point(246, 43);
+        numericCanvasHeight.Location = new Point(369, 64);
+        numericCanvasHeight.Margin = new Padding(4);
         numericCanvasHeight.Maximum = new decimal(new int[] { 8192, 0, 0, 0 });
         numericCanvasHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericCanvasHeight.Name = "numericCanvasHeight";
-        numericCanvasHeight.Size = new Size(103, 27);
+        numericCanvasHeight.Size = new Size(154, 30);
         numericCanvasHeight.TabIndex = 3;
         numericCanvasHeight.ThousandsSeparator = true;
         numericCanvasHeight.Value = new decimal(new int[] { 1080, 0, 0, 0 });
@@ -257,19 +294,21 @@ partial class MainForm
         // labelCanvasHeight
         // 
         labelCanvasHeight.AutoSize = true;
-        labelCanvasHeight.Location = new Point(192, 47);
+        labelCanvasHeight.Location = new Point(288, 70);
+        labelCanvasHeight.Margin = new Padding(4, 0, 4, 0);
         labelCanvasHeight.Name = "labelCanvasHeight";
-        labelCanvasHeight.Size = new Size(41, 20);
+        labelCanvasHeight.Size = new Size(46, 24);
         labelCanvasHeight.TabIndex = 2;
         labelCanvasHeight.Text = "高度";
         // 
         // numericCanvasWidth
         // 
-        numericCanvasWidth.Location = new Point(72, 43);
+        numericCanvasWidth.Location = new Point(108, 64);
+        numericCanvasWidth.Margin = new Padding(4);
         numericCanvasWidth.Maximum = new decimal(new int[] { 8192, 0, 0, 0 });
         numericCanvasWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericCanvasWidth.Name = "numericCanvasWidth";
-        numericCanvasWidth.Size = new Size(103, 27);
+        numericCanvasWidth.Size = new Size(154, 30);
         numericCanvasWidth.TabIndex = 1;
         numericCanvasWidth.ThousandsSeparator = true;
         numericCanvasWidth.Value = new decimal(new int[] { 1920, 0, 0, 0 });
@@ -278,9 +317,10 @@ partial class MainForm
         // labelCanvasWidth
         // 
         labelCanvasWidth.AutoSize = true;
-        labelCanvasWidth.Location = new Point(18, 47);
+        labelCanvasWidth.Location = new Point(27, 70);
+        labelCanvasWidth.Margin = new Padding(4, 0, 4, 0);
         labelCanvasWidth.Name = "labelCanvasWidth";
-        labelCanvasWidth.Size = new Size(41, 20);
+        labelCanvasWidth.Size = new Size(46, 24);
         labelCanvasWidth.TabIndex = 0;
         labelCanvasWidth.Text = "宽度";
         // 
@@ -296,9 +336,11 @@ partial class MainForm
         groupPlacement.Controls.Add(labelPatternY);
         groupPlacement.Controls.Add(numericPatternX);
         groupPlacement.Controls.Add(labelPatternX);
-        groupPlacement.Location = new Point(13, 288);
+        groupPlacement.Location = new Point(19, 451);
+        groupPlacement.Margin = new Padding(4);
         groupPlacement.Name = "groupPlacement";
-        groupPlacement.Size = new Size(367, 205);
+        groupPlacement.Padding = new Padding(4);
+        groupPlacement.Size = new Size(550, 308);
         groupPlacement.TabIndex = 2;
         groupPlacement.TabStop = false;
         groupPlacement.Text = "图案位置与区域尺寸（可修改）";
@@ -306,17 +348,19 @@ partial class MainForm
         // labelPlacementHelp
         // 
         labelPlacementHelp.ForeColor = Color.DimGray;
-        labelPlacementHelp.Location = new Point(18, 158);
+        labelPlacementHelp.Location = new Point(27, 237);
+        labelPlacementHelp.Margin = new Padding(4, 0, 4, 0);
         labelPlacementHelp.Name = "labelPlacementHelp";
-        labelPlacementHelp.Size = new Size(331, 39);
+        labelPlacementHelp.Size = new Size(496, 58);
         labelPlacementHelp.TabIndex = 9;
         labelPlacementHelp.Text = "坐标允许为负数，超出画布的部分会被安全裁剪。";
         // 
         // buttonCenter
         // 
-        buttonCenter.Location = new Point(246, 109);
+        buttonCenter.Location = new Point(369, 164);
+        buttonCenter.Margin = new Padding(4);
         buttonCenter.Name = "buttonCenter";
-        buttonCenter.Size = new Size(103, 34);
+        buttonCenter.Size = new Size(154, 51);
         buttonCenter.TabIndex = 8;
         buttonCenter.Text = "居中图案";
         buttonCenter.UseVisualStyleBackColor = true;
@@ -324,11 +368,12 @@ partial class MainForm
         // 
         // numericPatternHeight
         // 
-        numericPatternHeight.Location = new Point(246, 70);
+        numericPatternHeight.Location = new Point(369, 105);
+        numericPatternHeight.Margin = new Padding(4);
         numericPatternHeight.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
         numericPatternHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericPatternHeight.Name = "numericPatternHeight";
-        numericPatternHeight.Size = new Size(103, 27);
+        numericPatternHeight.Size = new Size(154, 30);
         numericPatternHeight.TabIndex = 7;
         numericPatternHeight.ThousandsSeparator = true;
         numericPatternHeight.Value = new decimal(new int[] { 627, 0, 0, 0 });
@@ -337,19 +382,21 @@ partial class MainForm
         // labelPatternHeight
         // 
         labelPatternHeight.AutoSize = true;
-        labelPatternHeight.Location = new Point(192, 74);
+        labelPatternHeight.Location = new Point(288, 111);
+        labelPatternHeight.Margin = new Padding(4, 0, 4, 0);
         labelPatternHeight.Name = "labelPatternHeight";
-        labelPatternHeight.Size = new Size(41, 20);
+        labelPatternHeight.Size = new Size(46, 24);
         labelPatternHeight.TabIndex = 6;
         labelPatternHeight.Text = "高度";
         // 
         // numericPatternWidth
         // 
-        numericPatternWidth.Location = new Point(72, 70);
+        numericPatternWidth.Location = new Point(108, 105);
+        numericPatternWidth.Margin = new Padding(4);
         numericPatternWidth.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
         numericPatternWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericPatternWidth.Name = "numericPatternWidth";
-        numericPatternWidth.Size = new Size(103, 27);
+        numericPatternWidth.Size = new Size(154, 30);
         numericPatternWidth.TabIndex = 5;
         numericPatternWidth.ThousandsSeparator = true;
         numericPatternWidth.Value = new decimal(new int[] { 1777, 0, 0, 0 });
@@ -358,19 +405,21 @@ partial class MainForm
         // labelPatternWidth
         // 
         labelPatternWidth.AutoSize = true;
-        labelPatternWidth.Location = new Point(18, 74);
+        labelPatternWidth.Location = new Point(27, 111);
+        labelPatternWidth.Margin = new Padding(4, 0, 4, 0);
         labelPatternWidth.Name = "labelPatternWidth";
-        labelPatternWidth.Size = new Size(41, 20);
+        labelPatternWidth.Size = new Size(46, 24);
         labelPatternWidth.TabIndex = 4;
         labelPatternWidth.Text = "宽度";
         // 
         // numericPatternY
         // 
-        numericPatternY.Location = new Point(246, 31);
+        numericPatternY.Location = new Point(369, 46);
+        numericPatternY.Margin = new Padding(4);
         numericPatternY.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
         numericPatternY.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
         numericPatternY.Name = "numericPatternY";
-        numericPatternY.Size = new Size(103, 27);
+        numericPatternY.Size = new Size(154, 30);
         numericPatternY.TabIndex = 3;
         numericPatternY.Value = new decimal(new int[] { 226, 0, 0, 0 });
         numericPatternY.ValueChanged += Parameter_ValueChanged;
@@ -378,19 +427,21 @@ partial class MainForm
         // labelPatternY
         // 
         labelPatternY.AutoSize = true;
-        labelPatternY.Location = new Point(192, 35);
+        labelPatternY.Location = new Point(288, 52);
+        labelPatternY.Margin = new Padding(4, 0, 4, 0);
         labelPatternY.Name = "labelPatternY";
-        labelPatternY.Size = new Size(18, 20);
+        labelPatternY.Size = new Size(21, 24);
         labelPatternY.TabIndex = 2;
         labelPatternY.Text = "Y";
         // 
         // numericPatternX
         // 
-        numericPatternX.Location = new Point(72, 31);
+        numericPatternX.Location = new Point(108, 46);
+        numericPatternX.Margin = new Padding(4);
         numericPatternX.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
         numericPatternX.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
         numericPatternX.Name = "numericPatternX";
-        numericPatternX.Size = new Size(103, 27);
+        numericPatternX.Size = new Size(154, 30);
         numericPatternX.TabIndex = 1;
         numericPatternX.Value = new decimal(new int[] { 71, 0, 0, 0 });
         numericPatternX.ValueChanged += Parameter_ValueChanged;
@@ -398,9 +449,10 @@ partial class MainForm
         // labelPatternX
         // 
         labelPatternX.AutoSize = true;
-        labelPatternX.Location = new Point(18, 35);
+        labelPatternX.Location = new Point(27, 52);
+        labelPatternX.Margin = new Padding(4, 0, 4, 0);
         labelPatternX.Name = "labelPatternX";
-        labelPatternX.Size = new Size(19, 20);
+        labelPatternX.Size = new Size(22, 24);
         labelPatternX.TabIndex = 0;
         labelPatternX.Text = "X";
         // 
@@ -415,20 +467,23 @@ partial class MainForm
         groupShape.Controls.Add(numericDotRadius);
         groupShape.Controls.Add(labelDotRadius);
         groupShape.Controls.Add(labelDotHelp);
-        groupShape.Location = new Point(13, 499);
+        groupShape.Location = new Point(19, 767);
+        groupShape.Margin = new Padding(4);
         groupShape.Name = "groupShape";
-        groupShape.Size = new Size(367, 174);
+        groupShape.Padding = new Padding(4);
+        groupShape.Size = new Size(550, 261);
         groupShape.TabIndex = 3;
         groupShape.TabStop = false;
         groupShape.Text = "图形参数";
         // 
         // numericColumns
         // 
-        numericColumns.Location = new Point(246, 72);
+        numericColumns.Location = new Point(369, 108);
+        numericColumns.Margin = new Padding(4);
         numericColumns.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
         numericColumns.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericColumns.Name = "numericColumns";
-        numericColumns.Size = new Size(103, 27);
+        numericColumns.Size = new Size(154, 30);
         numericColumns.TabIndex = 7;
         numericColumns.Value = new decimal(new int[] { 3, 0, 0, 0 });
         numericColumns.ValueChanged += Parameter_ValueChanged;
@@ -436,19 +491,21 @@ partial class MainForm
         // labelColumns
         // 
         labelColumns.AutoSize = true;
-        labelColumns.Location = new Point(192, 76);
+        labelColumns.Location = new Point(288, 114);
+        labelColumns.Margin = new Padding(4, 0, 4, 0);
         labelColumns.Name = "labelColumns";
-        labelColumns.Size = new Size(25, 20);
+        labelColumns.Size = new Size(28, 24);
         labelColumns.TabIndex = 6;
         labelColumns.Text = "列";
         // 
         // numericRows
         // 
-        numericRows.Location = new Point(72, 72);
+        numericRows.Location = new Point(108, 108);
+        numericRows.Margin = new Padding(4);
         numericRows.Maximum = new decimal(new int[] { 1000, 0, 0, 0 });
         numericRows.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericRows.Name = "numericRows";
-        numericRows.Size = new Size(103, 27);
+        numericRows.Size = new Size(154, 30);
         numericRows.TabIndex = 5;
         numericRows.Value = new decimal(new int[] { 3, 0, 0, 0 });
         numericRows.ValueChanged += Parameter_ValueChanged;
@@ -456,19 +513,21 @@ partial class MainForm
         // labelRows
         // 
         labelRows.AutoSize = true;
-        labelRows.Location = new Point(18, 76);
+        labelRows.Location = new Point(27, 114);
+        labelRows.Margin = new Padding(4, 0, 4, 0);
         labelRows.Name = "labelRows";
-        labelRows.Size = new Size(25, 20);
+        labelRows.Size = new Size(28, 24);
         labelRows.TabIndex = 4;
         labelRows.Text = "行";
         // 
         // numericLineWidth
         // 
-        numericLineWidth.Location = new Point(246, 33);
+        numericLineWidth.Location = new Point(369, 50);
+        numericLineWidth.Margin = new Padding(4);
         numericLineWidth.Maximum = new decimal(new int[] { 2048, 0, 0, 0 });
         numericLineWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericLineWidth.Name = "numericLineWidth";
-        numericLineWidth.Size = new Size(103, 27);
+        numericLineWidth.Size = new Size(154, 30);
         numericLineWidth.TabIndex = 3;
         numericLineWidth.Value = new decimal(new int[] { 5, 0, 0, 0 });
         numericLineWidth.ValueChanged += Parameter_ValueChanged;
@@ -476,18 +535,20 @@ partial class MainForm
         // labelLineWidth
         // 
         labelLineWidth.AutoSize = true;
-        labelLineWidth.Location = new Point(192, 37);
+        labelLineWidth.Location = new Point(288, 56);
+        labelLineWidth.Margin = new Padding(4, 0, 4, 0);
         labelLineWidth.Name = "labelLineWidth";
-        labelLineWidth.Size = new Size(41, 20);
+        labelLineWidth.Size = new Size(46, 24);
         labelLineWidth.TabIndex = 2;
         labelLineWidth.Text = "线宽";
         // 
         // numericDotRadius
         // 
-        numericDotRadius.Location = new Point(112, 33);
+        numericDotRadius.Location = new Point(168, 50);
+        numericDotRadius.Margin = new Padding(4);
         numericDotRadius.Maximum = new decimal(new int[] { 2048, 0, 0, 0 });
         numericDotRadius.Name = "numericDotRadius";
-        numericDotRadius.Size = new Size(63, 27);
+        numericDotRadius.Size = new Size(94, 30);
         numericDotRadius.TabIndex = 1;
         numericDotRadius.Value = new decimal(new int[] { 4, 0, 0, 0 });
         numericDotRadius.ValueChanged += Parameter_ValueChanged;
@@ -495,37 +556,42 @@ partial class MainForm
         // labelDotRadius
         // 
         labelDotRadius.AutoSize = true;
-        labelDotRadius.Location = new Point(18, 37);
+        labelDotRadius.Location = new Point(27, 56);
+        labelDotRadius.Margin = new Padding(4, 0, 4, 0);
         labelDotRadius.Name = "labelDotRadius";
-        labelDotRadius.Size = new Size(87, 20);
+        labelDotRadius.Size = new Size(115, 24);
         labelDotRadius.TabIndex = 0;
         labelDotRadius.Text = "圆点半径(px)";
         // 
         // labelDotHelp
         // 
         labelDotHelp.ForeColor = Color.DimGray;
-        labelDotHelp.Location = new Point(18, 112);
+        labelDotHelp.Location = new Point(27, 168);
+        labelDotHelp.Margin = new Padding(4, 0, 4, 0);
         labelDotHelp.Name = "labelDotHelp";
-        labelDotHelp.Size = new Size(331, 42);
+        labelDotHelp.Size = new Size(496, 63);
         labelDotHelp.TabIndex = 8;
         labelDotHelp.Text = "默认半径 4，直径为 2r+1=9 px；点阵行列数也可调整。";
-        //
+        // 
         // groupBorderOverlay
-        //
+        // 
         groupBorderOverlay.Controls.Add(borderOverlayEditor);
-        groupBorderOverlay.Location = new Point(13, 679);
+        groupBorderOverlay.Location = new Point(19, 1036);
+        groupBorderOverlay.Margin = new Padding(4);
         groupBorderOverlay.Name = "groupBorderOverlay";
-        groupBorderOverlay.Size = new Size(367, 226);
+        groupBorderOverlay.Padding = new Padding(4);
+        groupBorderOverlay.Size = new Size(550, 339);
         groupBorderOverlay.TabIndex = 4;
         groupBorderOverlay.TabStop = false;
         groupBorderOverlay.Text = "白框叠加层（可应用于任意底图）";
-        //
+        // 
         // borderOverlayEditor
-        //
+        // 
         borderOverlayEditor.CanvasSize = new Size(1920, 1080);
-        borderOverlayEditor.Location = new Point(14, 26);
+        borderOverlayEditor.Location = new Point(21, 39);
+        borderOverlayEditor.Margin = new Padding(6);
         borderOverlayEditor.Name = "borderOverlayEditor";
-        borderOverlayEditor.Size = new Size(335, 188);
+        borderOverlayEditor.Size = new Size(502, 282);
         borderOverlayEditor.TabIndex = 0;
         borderOverlayEditor.SettingsChanged += borderOverlayEditor_SettingsChanged;
         // 
@@ -536,9 +602,11 @@ partial class MainForm
         groupExport.Controls.Add(labelQuality);
         groupExport.Controls.Add(comboOutputFormat);
         groupExport.Controls.Add(labelOutputFormat);
-        groupExport.Location = new Point(13, 911);
+        groupExport.Location = new Point(19, 1383);
+        groupExport.Margin = new Padding(4);
         groupExport.Name = "groupExport";
-        groupExport.Size = new Size(367, 145);
+        groupExport.Padding = new Padding(4);
+        groupExport.Size = new Size(550, 218);
         groupExport.TabIndex = 5;
         groupExport.TabStop = false;
         groupExport.Text = "导出格式";
@@ -546,28 +614,30 @@ partial class MainForm
         // labelExportHelp
         // 
         labelExportHelp.ForeColor = Color.DimGray;
-        labelExportHelp.Location = new Point(18, 99);
+        labelExportHelp.Location = new Point(27, 148);
+        labelExportHelp.Margin = new Padding(4, 0, 4, 0);
         labelExportHelp.Name = "labelExportHelp";
-        labelExportHelp.Size = new Size(331, 37);
+        labelExportHelp.Size = new Size(496, 56);
         labelExportHelp.TabIndex = 4;
         labelExportHelp.Text = "PNG/BMP/TIFF 无损；JPG 会改变精确像素，检测图建议优先 PNG。";
         // 
         // numericQuality
         // 
-        numericQuality.Location = new Point(112, 66);
-        numericQuality.Maximum = new decimal(new int[] { 100, 0, 0, 0 });
+        numericQuality.Location = new Point(168, 99);
+        numericQuality.Margin = new Padding(4);
         numericQuality.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericQuality.Name = "numericQuality";
-        numericQuality.Size = new Size(98, 27);
+        numericQuality.Size = new Size(147, 30);
         numericQuality.TabIndex = 3;
         numericQuality.Value = new decimal(new int[] { 95, 0, 0, 0 });
         // 
         // labelQuality
         // 
         labelQuality.AutoSize = true;
-        labelQuality.Location = new Point(18, 70);
+        labelQuality.Location = new Point(27, 105);
+        labelQuality.Margin = new Padding(4, 0, 4, 0);
         labelQuality.Name = "labelQuality";
-        labelQuality.Size = new Size(69, 20);
+        labelQuality.Size = new Size(82, 24);
         labelQuality.TabIndex = 2;
         labelQuality.Text = "压缩质量";
         // 
@@ -576,18 +646,20 @@ partial class MainForm
         comboOutputFormat.DropDownStyle = ComboBoxStyle.DropDownList;
         comboOutputFormat.FormattingEnabled = true;
         comboOutputFormat.Items.AddRange(new object[] { "PNG（无损，推荐）", "JPEG / JPG", "BMP", "TIFF", "WebP" });
-        comboOutputFormat.Location = new Point(112, 28);
+        comboOutputFormat.Location = new Point(168, 42);
+        comboOutputFormat.Margin = new Padding(4);
         comboOutputFormat.Name = "comboOutputFormat";
-        comboOutputFormat.Size = new Size(237, 28);
+        comboOutputFormat.Size = new Size(354, 32);
         comboOutputFormat.TabIndex = 1;
         comboOutputFormat.SelectedIndexChanged += comboOutputFormat_SelectedIndexChanged;
         // 
         // labelOutputFormat
         // 
         labelOutputFormat.AutoSize = true;
-        labelOutputFormat.Location = new Point(18, 32);
+        labelOutputFormat.Location = new Point(27, 48);
+        labelOutputFormat.Margin = new Padding(4, 0, 4, 0);
         labelOutputFormat.Name = "labelOutputFormat";
-        labelOutputFormat.Size = new Size(69, 20);
+        labelOutputFormat.Size = new Size(82, 24);
         labelOutputFormat.TabIndex = 0;
         labelOutputFormat.Text = "图片格式";
         // 
@@ -597,62 +669,32 @@ partial class MainForm
         groupActions.Controls.Add(buttonSaveCurrent);
         groupActions.Controls.Add(buttonReset);
         groupActions.Controls.Add(buttonRefresh);
-        groupActions.Controls.Add(buttonPhaseTool);
-        groupActions.Controls.Add(buttonExportScreen1);
-        groupActions.Controls.Add(buttonExportScreen1Stereo);
-        groupActions.Location = new Point(13, 1062);
+        groupActions.Location = new Point(19, 1609);
+        groupActions.Margin = new Padding(4);
         groupActions.Name = "groupActions";
-        groupActions.Size = new Size(367, 226);
+        groupActions.Padding = new Padding(4);
+        groupActions.Size = new Size(550, 196);
         groupActions.TabIndex = 6;
         groupActions.TabStop = false;
         groupActions.Text = "生成与保存";
         // 
         // buttonBatchExport
         // 
-        buttonBatchExport.Location = new Point(192, 75);
+        buttonBatchExport.Location = new Point(288, 112);
+        buttonBatchExport.Margin = new Padding(4);
         buttonBatchExport.Name = "buttonBatchExport";
-        buttonBatchExport.Size = new Size(157, 38);
+        buttonBatchExport.Size = new Size(236, 57);
         buttonBatchExport.TabIndex = 3;
         buttonBatchExport.Text = "批量导出主图 10 张";
         buttonBatchExport.UseVisualStyleBackColor = true;
         buttonBatchExport.Click += buttonBatchExport_Click;
-        //
-        // buttonPhaseTool
-        //
-        buttonPhaseTool.Location = new Point(18, 122);
-        buttonPhaseTool.Name = "buttonPhaseTool";
-        buttonPhaseTool.Size = new Size(331, 38);
-        buttonPhaseTool.TabIndex = 4;
-        buttonPhaseTool.Text = "打开 RGB 八步相移条纹工具...";
-        buttonPhaseTool.UseVisualStyleBackColor = true;
-        buttonPhaseTool.Click += buttonPhaseTool_Click;
-        //
-        // buttonExportScreen1
-        //
-        buttonExportScreen1.Location = new Point(18, 169);
-        buttonExportScreen1.Name = "buttonExportScreen1";
-        buttonExportScreen1.Size = new Size(331, 38);
-        buttonExportScreen1.TabIndex = 5;
-        buttonExportScreen1.Text = "导出1号屏参考图（3张）";
-        buttonExportScreen1.UseVisualStyleBackColor = true;
-        buttonExportScreen1.Click += buttonExportScreen1_Click;
-        //
-        // buttonExportScreen1Stereo
-        //
-        buttonExportScreen1Stereo.Location = new Point(192, 169);
-        buttonExportScreen1Stereo.Name = "buttonExportScreen1Stereo";
-        buttonExportScreen1Stereo.Size = new Size(157, 38);
-        buttonExportScreen1Stereo.TabIndex = 6;
-        buttonExportScreen1Stereo.Text = "3D系列（暂未启用）";
-        buttonExportScreen1Stereo.UseVisualStyleBackColor = true;
-        buttonExportScreen1Stereo.Visible = false;
-        buttonExportScreen1Stereo.Click += buttonExportScreen1Stereo_Click;
         // 
         // buttonSaveCurrent
         // 
-        buttonSaveCurrent.Location = new Point(18, 75);
+        buttonSaveCurrent.Location = new Point(27, 112);
+        buttonSaveCurrent.Margin = new Padding(4);
         buttonSaveCurrent.Name = "buttonSaveCurrent";
-        buttonSaveCurrent.Size = new Size(157, 38);
+        buttonSaveCurrent.Size = new Size(236, 57);
         buttonSaveCurrent.TabIndex = 2;
         buttonSaveCurrent.Text = "保存当前图卡...";
         buttonSaveCurrent.UseVisualStyleBackColor = true;
@@ -660,9 +702,10 @@ partial class MainForm
         // 
         // buttonReset
         // 
-        buttonReset.Location = new Point(192, 28);
+        buttonReset.Location = new Point(288, 42);
+        buttonReset.Margin = new Padding(4);
         buttonReset.Name = "buttonReset";
-        buttonReset.Size = new Size(157, 38);
+        buttonReset.Size = new Size(236, 57);
         buttonReset.TabIndex = 1;
         buttonReset.Text = "恢复样图默认参数";
         buttonReset.UseVisualStyleBackColor = true;
@@ -670,9 +713,10 @@ partial class MainForm
         // 
         // buttonRefresh
         // 
-        buttonRefresh.Location = new Point(18, 28);
+        buttonRefresh.Location = new Point(27, 42);
+        buttonRefresh.Margin = new Padding(4);
         buttonRefresh.Name = "buttonRefresh";
-        buttonRefresh.Size = new Size(157, 38);
+        buttonRefresh.Size = new Size(236, 57);
         buttonRefresh.TabIndex = 0;
         buttonRefresh.Text = "立即刷新预览";
         buttonRefresh.UseVisualStyleBackColor = true;
@@ -682,9 +726,10 @@ partial class MainForm
         // 
         imagePreviewControl.BackColor = Color.FromArgb(224, 228, 234);
         imagePreviewControl.Dock = DockStyle.Fill;
-        imagePreviewControl.Location = new Point(0, 44);
+        imagePreviewControl.Location = new Point(0, 66);
+        imagePreviewControl.Margin = new Padding(6);
         imagePreviewControl.Name = "imagePreviewControl";
-        imagePreviewControl.Size = new Size(969, 794);
+        imagePreviewControl.Size = new Size(1453, 1193);
         imagePreviewControl.TabIndex = 1;
         // 
         // previewHeaderPanel
@@ -693,32 +738,36 @@ partial class MainForm
         previewHeaderPanel.Controls.Add(labelPreviewInfo);
         previewHeaderPanel.Dock = DockStyle.Top;
         previewHeaderPanel.Location = new Point(0, 0);
+        previewHeaderPanel.Margin = new Padding(4);
         previewHeaderPanel.Name = "previewHeaderPanel";
-        previewHeaderPanel.Size = new Size(969, 44);
+        previewHeaderPanel.Size = new Size(1453, 66);
         previewHeaderPanel.TabIndex = 0;
         // 
         // labelPreviewInfo
         // 
         labelPreviewInfo.AutoSize = true;
         labelPreviewInfo.ForeColor = Color.WhiteSmoke;
-        labelPreviewInfo.Location = new Point(16, 12);
+        labelPreviewInfo.Location = new Point(24, 18);
+        labelPreviewInfo.Margin = new Padding(4, 0, 4, 0);
         labelPreviewInfo.Name = "labelPreviewInfo";
-        labelPreviewInfo.Size = new Size(126, 20);
+        labelPreviewInfo.Size = new Size(175, 24);
         labelPreviewInfo.TabIndex = 0;
         labelPreviewInfo.Text = "预览：1920 × 1080";
         // 
         // statusStrip
         // 
+        statusStrip.ImageScalingSize = new Size(24, 24);
         statusStrip.Items.AddRange(new ToolStripItem[] { statusLabel });
-        statusStrip.Location = new Point(0, 838);
+        statusStrip.Location = new Point(0, 1259);
         statusStrip.Name = "statusStrip";
-        statusStrip.Size = new Size(1380, 22);
+        statusStrip.Padding = new Padding(2, 0, 21, 0);
+        statusStrip.Size = new Size(2070, 31);
         statusStrip.TabIndex = 1;
         // 
         // statusLabel
         // 
         statusLabel.Name = "statusLabel";
-        statusLabel.Size = new Size(126, 17);
+        statusLabel.Size = new Size(189, 24);
         statusLabel.Text = "正在初始化 OpenCV...";
         // 
         // previewTimer
@@ -728,30 +777,28 @@ partial class MainForm
         // 
         // saveFileDialog
         // 
-        saveFileDialog.AddExtension = true;
-        saveFileDialog.OverwritePrompt = true;
         saveFileDialog.Title = "保存图卡";
         // 
         // folderBrowserDialog
         // 
         folderBrowserDialog.Description = "选择批量导出目录";
         folderBrowserDialog.UseDescriptionForTitle = true;
-        //
+        // 
         // openImageDialog
-        //
-        openImageDialog.CheckFileExists = true;
+        // 
         openImageDialog.Filter = "图片文件|*.png;*.jpg;*.jpeg;*.bmp;*.tif;*.tiff;*.webp|所有文件|*.*";
         openImageDialog.Title = "选择要添加白框的底图";
         // 
         // MainForm
         // 
-        AutoScaleDimensions = new SizeF(96F, 96F);
+        AutoScaleDimensions = new SizeF(144F, 144F);
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(1380, 860);
+        ClientSize = new Size(2070, 1290);
         Controls.Add(splitContainerMain);
         Controls.Add(statusStrip);
-        Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
-        MinimumSize = new Size(1100, 700);
+        Font = new Font("Microsoft YaHei UI", 9F);
+        Margin = new Padding(4);
+        MinimumSize = new Size(1639, 1022);
         Name = "MainForm";
         StartPosition = FormStartPosition.CenterScreen;
         Text = "EOL 图卡生成器 - OpenCvSharp";
@@ -844,9 +891,6 @@ partial class MainForm
     private Button buttonSaveCurrent;
     private Button buttonReset;
     private Button buttonRefresh;
-    private Button buttonPhaseTool;
-    private Button buttonExportScreen1;
-    private Button buttonExportScreen1Stereo;
     private EolTestPatternGenerator.Controls.ImagePreviewControl imagePreviewControl;
     private Panel previewHeaderPanel;
     private Label labelPreviewInfo;
@@ -857,4 +901,6 @@ partial class MainForm
     private FolderBrowserDialog folderBrowserDialog;
     private OpenFileDialog openImageDialog;
     private ToolTip toolTip;
+    private Button buttonPhaseTool;
+    private Button buttonExportScreen1;
 }

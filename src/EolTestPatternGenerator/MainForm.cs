@@ -1,34 +1,54 @@
 using EolTestPatternGenerator.Models;
 using EolTestPatternGenerator.Services;
+using System.ComponentModel;
 
 namespace EolTestPatternGenerator;
 
 public partial class MainForm : Form
 {
-    private static readonly PatternChoice[] MainPatternChoices =
+    // 与 MainForm.Designer.cs 中 comboPattern.Items 的顺序一一对应。
+    private static readonly PatternType[] MainPatternTypes =
     [
-        new(PatternType.Border, "外框（兼容 0.png）"),
-        new(PatternType.NinePointGrid, "九点图"),
-        new(PatternType.DistortionGrid, "畸变点阵（27×7）"),
-        new(PatternType.CorrectionCross, "上下校正十字"),
-        new(PatternType.WhiteRectangle, "白色矩形"),
-        new(PatternType.Black, "全黑图（RGB 仅 0）"),
-        new(PatternType.FullWhite, "全白图（RGB 仅 255）"),
-        new(PatternType.FullRed, "全红图（255,0,0）"),
-        new(PatternType.FullGreen, "全绿图（0,255,0）"),
-        new(PatternType.FullBlue, "全蓝图（0,0,255）"),
-        new(PatternType.ImportedImage, "导入图片并添加白框")
+        PatternType.Border,
+        PatternType.NinePointGrid,
+        PatternType.DistortionGrid,
+        PatternType.CorrectionCross,
+        PatternType.WhiteRectangle,
+        PatternType.Black,
+        PatternType.FullWhite,
+        PatternType.FullRed,
+        PatternType.FullGreen,
+        PatternType.FullBlue,
+        PatternType.ImportedImage
     ];
 
+    // 每种图卡保留独立参数快照；切换下拉项时不会丢失用户刚才的调整。
     private readonly Dictionary<PatternType, PatternSettings> _patternProfiles = new();
     private PatternType _activePatternType = PatternType.Border;
     private bool _updatingControls;
     private bool _isRendering;
+    private bool _userInterfaceInitialized;
     private int _activeExports;
 
     public MainForm()
     {
         InitializeComponent();
+    }
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+
+        // WinForms 设计器也会调用无参构造函数。等 Site 建立后的 OnLoad 再判断，
+        // 避免设计时加载 OpenCV 原生库并生成整张预览图。
+        if (_userInterfaceInitialized ||
+            DesignMode ||
+            LicenseManager.UsageMode == LicenseUsageMode.Designtime)
+        {
+            return;
+        }
+
+        _userInterfaceInitialized = true;
         InitializeUserInterface();
     }
 
@@ -42,17 +62,10 @@ public partial class MainForm : Form
         toolTip.SetToolTip(numericPatternHeight, "矩形图为区域高度；点阵图为第一个到最后一个圆心的 Y 距离。");
         toolTip.SetToolTip(numericDotRadius, "半径 4 对应 9 像素直径；半径 0 对应单像素点。");
         toolTip.SetToolTip(buttonBatchExport, "生成主窗口的 10 张图卡；RGB 相移 8 张请在独立工具中导出。");
-        toolTip.SetToolTip(buttonExportScreen1, "按三张参考图导出 1.B_W、2.W_B 和 3.B；固定 3200×2000。只允许无损格式。");
+        toolTip.SetToolTip(buttonExportScreen1, "打开1号屏独立工具，可调整画布分辨率及左右矩形的位置和大小。");
 
         ResetProfilesToDefaults();
-
-        _updatingControls = true;
-        comboPattern.Items.Clear();
-        comboPattern.DataSource = MainPatternChoices;
-        comboPattern.DisplayMember = nameof(PatternChoice.Text);
-        comboOutputFormat.SelectedIndex = 0;
-        comboPattern.SelectedIndex = 0;
-        _updatingControls = false;
+        LoadUserPreferences();
 
         _activePatternType = SelectedPatternType;
         LoadActiveProfile();
@@ -60,7 +73,9 @@ public partial class MainForm : Form
     }
 
     private PatternType SelectedPatternType =>
-        comboPattern.SelectedItem is PatternChoice choice ? choice.Type : PatternType.Border;
+        comboPattern.SelectedIndex >= 0 && comboPattern.SelectedIndex < MainPatternTypes.Length
+            ? MainPatternTypes[comboPattern.SelectedIndex]
+            : PatternType.Border;
 
     private void ResetProfilesToDefaults()
     {
@@ -68,6 +83,36 @@ public partial class MainForm : Form
         foreach (PatternType type in Enum.GetValues<PatternType>())
         {
             _patternProfiles[type] = PatternPresets.Create(type);
+        }
+    }
+
+    /// <summary>加载上次关闭程序时保存的全部主窗口输入。</summary>
+    private void LoadUserPreferences()
+    {
+        MainPreferences preferences = UserSettingsStore.Shared.Load().Main;
+        foreach ((PatternType type, PatternSettings settings) in preferences.PatternProfiles)
+        {
+            if (Enum.IsDefined(type) && settings is not null)
+            {
+                _patternProfiles[type] = settings.Clone();
+            }
+        }
+
+        _updatingControls = true;
+        try
+        {
+            int patternIndex = Array.IndexOf(MainPatternTypes, preferences.SelectedPatternType);
+            comboPattern.SelectedIndex = patternIndex >= 0 ? patternIndex : 0;
+            comboOutputFormat.SelectedIndex = Enum.IsDefined(preferences.OutputFormat)
+                ? (int)preferences.OutputFormat
+                : (int)ImageFormatKind.Png;
+            SetNumericValue(numericQuality, preferences.Quality);
+            imagePreviewControl.ShowCenterCrosshair = preferences.PreviewOverlay.ShowCenterCrosshair;
+            imagePreviewControl.ShowPixelCoordinates = preferences.PreviewOverlay.ShowPixelCoordinates;
+        }
+        finally
+        {
+            _updatingControls = false;
         }
     }
 
@@ -483,55 +528,10 @@ public partial class MainForm : Form
         UpdatePreview();
     }
 
-    private async void buttonExportScreen1_Click(object? sender, EventArgs e)
+    private void buttonExportScreen1_Click(object? sender, EventArgs e)
     {
-        ImageExportOptions exportOptions = ReadExportOptions();
-        if (!EnsureLosslessFormat(exportOptions, "1号屏参考图"))
-        {
-            return;
-        }
-
-        folderBrowserDialog.Description = "选择 1号屏三张参考图的导出目录";
-        if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
-        {
-            return;
-        }
-
-        BeginExport();
-        statusLabel.Text = "正在导出 1号屏三张参考图...";
-
-        try
-        {
-            IReadOnlyList<string> paths = await Task.Run(() => ScreenOneBatchExporter.ExportReferenceThree(
-                folderBrowserDialog.SelectedPath,
-                exportOptions));
-            statusLabel.Text = $"1号屏参考图导出完成：{paths.Count} 张";
-            MessageBox.Show(
-                this,
-                $"已导出 {paths.Count} 张：1.B_W、2.W_B、3.B。\n尺寸：3200 × 2000\n目录：{folderBrowserDialog.SelectedPath}",
-                "导出完成",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
-        }
-        catch (Exception exception)
-        {
-            statusLabel.Text = $"1号屏导出失败：{exception.Message}";
-            MessageBox.Show(this, exception.Message, "导出失败", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-        finally
-        {
-            EndExport();
-        }
-    }
-
-    private void buttonExportScreen1Stereo_Click(object? sender, EventArgs e)
-    {
-        MessageBox.Show(
-            this,
-            "当前按你提供的三张普通 1号屏参考图实现；3D 系列暂未启用。",
-            "暂未启用",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information);
+        using var form = new ScreenOneForm();
+        form.ShowDialog(this);
     }
 
     private bool EnsureLosslessFormat(ImageExportOptions options, string outputName)
@@ -583,22 +583,67 @@ public partial class MainForm : Form
 
     private void MainForm_FormClosing(object? sender, FormClosingEventArgs e)
     {
-        if (_activeExports == 0)
+        if (_activeExports > 0)
         {
+            e.Cancel = true;
+            MessageBox.Show(
+                this,
+                "图卡正在导出，请等待导出完成后再关闭窗口。",
+                "正在导出",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
             return;
         }
 
-        e.Cancel = true;
-        MessageBox.Show(
-            this,
-            "图卡正在导出，请等待导出完成后再关闭窗口。",
-            "正在导出",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information);
+        SaveUserPreferences();
+    }
+
+    /// <summary>将每种图卡的独立参数、导出选项和预览开关原子保存到用户目录。</summary>
+    private void SaveUserPreferences()
+    {
+        StoreControlsInProfiles(_activePatternType);
+        var preferences = new MainPreferences
+        {
+            SelectedPatternType = _activePatternType,
+            OutputFormat = ReadExportOptions().Format,
+            Quality = (int)numericQuality.Value,
+            PatternProfiles = _patternProfiles.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value.Clone()),
+            PreviewOverlay = new PreviewOverlayPreferences
+            {
+                ShowCenterCrosshair = imagePreviewControl.ShowCenterCrosshair,
+                ShowPixelCoordinates = imagePreviewControl.ShowPixelCoordinates
+            }
+        };
+
+        if (!UserSettingsStore.Shared.TryUpdateAndSave(
+                root => root.Main = preferences,
+                out Exception? error))
+        {
+            MessageBox.Show(
+                this,
+                $"无法保存上次输入值：{error?.Message}",
+                "保存设置失败",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
     }
 
     private void MainForm_FormClosed(object? sender, FormClosedEventArgs e)
     {
         previewTimer.Stop();
+    }
+
+    private void buttonPhaseTool_Click_1(object sender, EventArgs e)
+    {
+        using var form = new PhaseStripeForm();
+        form.ShowDialog(this);
+    }
+
+    private void buttonExportScreen1_Click_1(object sender, EventArgs e)
+    {
+        using var form = new ScreenOneForm();
+        form.ShowDialog(this);
     }
 }

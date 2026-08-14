@@ -1,5 +1,6 @@
 using EolTestPatternGenerator.Services;
 using EolTestPatternGenerator.Models;
+using EolTestPatternGenerator.Controls;
 
 namespace EolTestPatternGenerator;
 
@@ -20,8 +21,43 @@ internal static class Program
             ApplicationConfiguration.Initialize();
             using var mainForm = new MainForm();
             using var phaseStripeForm = new PhaseStripeForm();
-            _ = mainForm.Handle;
-            _ = phaseStripeForm.Handle;
+            using var screenOneForm = new ScreenOneForm();
+            using var nonIntegerFusionForm = new NonIntegerFusionForm();
+            using var previewControl = new ImagePreviewControl();
+
+            // 直接点击 Designer 创建的工具栏按钮，验证事件绑定和属性同步都有效。
+            if (!previewControl.ShowCenterCrosshair || !previewControl.ShowPixelCoordinates)
+            {
+                throw new InvalidOperationException("预览辅助显示开关的默认状态不正确。");
+            }
+
+            ToolStrip toolStrip = previewControl.Controls
+                .OfType<ToolStrip>()
+                .Single();
+            var centerButton = toolStrip.Items["buttonCenterCrosshair"] as ToolStripButton
+                ?? throw new InvalidOperationException("未找到中心十字开关。");
+            var coordinateButton = toolStrip.Items["buttonPixelCoordinates"] as ToolStripButton
+                ?? throw new InvalidOperationException("未找到像素坐标开关。");
+
+            centerButton.PerformClick();
+            coordinateButton.PerformClick();
+            if (previewControl.ShowCenterCrosshair || previewControl.ShowPixelCoordinates)
+            {
+                throw new InvalidOperationException("预览辅助显示开关无法关闭。");
+            }
+
+            centerButton.PerformClick();
+            coordinateButton.PerformClick();
+            if (!previewControl.ShowCenterCrosshair || !previewControl.ShowPixelCoordinates)
+            {
+                throw new InvalidOperationException("预览辅助显示开关无法重新开启。");
+            }
+
+            // Show 会触发与真实运行一致的 OnLoad；立即隐藏，自动验证三个窗体及 OpenCV 预览。
+            ShowAndHide(mainForm);
+            ShowAndHide(phaseStripeForm);
+            ShowAndHide(screenOneForm);
+            ShowAndHide(nonIntegerFusionForm);
             Console.WriteLine("WinForms 界面构造自检通过。");
             return 0;
         }
@@ -46,6 +82,15 @@ internal static class Program
         ApplicationConfiguration.Initialize();
         Application.Run(new MainForm());
         return 0;
+    }
+
+    private static void ShowAndHide(Form form)
+    {
+        form.ShowInTaskbar = false;
+        form.Opacity = 0;
+        form.Show();
+        Application.DoEvents();
+        form.Hide();
     }
 
     private static ImageFormatKind ParseFormat(string value)

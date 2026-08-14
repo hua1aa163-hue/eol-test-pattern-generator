@@ -10,7 +10,6 @@ partial class ImagePreviewControl
     {
         if (disposing)
         {
-            previewSurface?.SetImage(null, false);
             components?.Dispose();
         }
 
@@ -27,6 +26,10 @@ partial class ImagePreviewControl
         buttonResetView = new ToolStripButton();
         separatorView = new ToolStripSeparator();
         labelZoom = new ToolStripLabel();
+        separatorOverlay = new ToolStripSeparator();
+        buttonCenterCrosshair = new ToolStripButton();
+        buttonPixelCoordinates = new ToolStripButton();
+        labelPixelCoordinate = new ToolStripLabel();
         labelHint = new ToolStripLabel();
         previewSurface = new PreviewSurface();
         toolStrip.SuspendLayout();
@@ -36,7 +39,7 @@ partial class ImagePreviewControl
         //
         toolStrip.BackColor = Color.FromArgb(245, 247, 250);
         toolStrip.GripStyle = ToolStripGripStyle.Hidden;
-        toolStrip.Items.AddRange(new ToolStripItem[] { buttonFit, buttonActualSize, buttonResetView, separatorView, labelZoom, labelHint });
+        toolStrip.Items.AddRange(new ToolStripItem[] { buttonFit, buttonActualSize, buttonResetView, separatorView, labelZoom, separatorOverlay, buttonCenterCrosshair, buttonPixelCoordinates, labelPixelCoordinate, labelHint });
         toolStrip.Location = new Point(0, 0);
         toolStrip.Name = "toolStrip";
         toolStrip.Padding = new Padding(8, 2, 4, 2);
@@ -78,6 +81,42 @@ partial class ImagePreviewControl
         labelZoom.Size = new Size(45, 22);
         labelZoom.Text = "100.0%";
         //
+        // separatorOverlay
+        //
+        separatorOverlay.Name = "separatorOverlay";
+        separatorOverlay.Size = new Size(6, 25);
+        //
+        // buttonCenterCrosshair
+        //
+        buttonCenterCrosshair.Checked = true;
+        buttonCenterCrosshair.CheckOnClick = true;
+        buttonCenterCrosshair.CheckState = CheckState.Checked;
+        buttonCenterCrosshair.DisplayStyle = ToolStripItemDisplayStyle.Text;
+        buttonCenterCrosshair.Name = "buttonCenterCrosshair";
+        buttonCenterCrosshair.Size = new Size(60, 22);
+        buttonCenterCrosshair.Text = "中心十字";
+        buttonCenterCrosshair.ToolTipText = "显示或隐藏原图中心的十字虚线";
+        buttonCenterCrosshair.CheckedChanged += buttonCenterCrosshair_CheckedChanged;
+        //
+        // buttonPixelCoordinates
+        //
+        buttonPixelCoordinates.Checked = true;
+        buttonPixelCoordinates.CheckOnClick = true;
+        buttonPixelCoordinates.CheckState = CheckState.Checked;
+        buttonPixelCoordinates.DisplayStyle = ToolStripItemDisplayStyle.Text;
+        buttonPixelCoordinates.Name = "buttonPixelCoordinates";
+        buttonPixelCoordinates.Size = new Size(60, 22);
+        buttonPixelCoordinates.Text = "像素坐标";
+        buttonPixelCoordinates.ToolTipText = "显示或隐藏鼠标所在的原图像素坐标";
+        buttonPixelCoordinates.CheckedChanged += buttonPixelCoordinates_CheckedChanged;
+        //
+        // labelPixelCoordinate
+        //
+        labelPixelCoordinate.ForeColor = Color.FromArgb(45, 55, 72);
+        labelPixelCoordinate.Name = "labelPixelCoordinate";
+        labelPixelCoordinate.Size = new Size(56, 22);
+        labelPixelCoordinate.Text = "像素：—";
+        //
         // labelHint
         //
         labelHint.Alignment = ToolStripItemAlignment.Right;
@@ -94,6 +133,7 @@ partial class ImagePreviewControl
         previewSurface.Name = "previewSurface";
         previewSurface.Size = new Size(800, 471);
         previewSurface.TabIndex = 1;
+        previewSurface.MousePixelChanged += previewSurface_MousePixelChanged;
         previewSurface.ViewChanged += previewSurface_ViewChanged;
         //
         // ImagePreviewControl
@@ -119,6 +159,10 @@ partial class ImagePreviewControl
     private ToolStripButton buttonResetView;
     private ToolStripSeparator separatorView;
     private ToolStripLabel labelZoom;
+    private ToolStripSeparator separatorOverlay;
+    private ToolStripButton buttonCenterCrosshair;
+    private ToolStripButton buttonPixelCoordinates;
+    private ToolStripLabel labelPixelCoordinate;
     private ToolStripLabel labelHint;
     private PreviewSurface previewSurface;
 }

@@ -2,6 +2,9 @@ using EolTestPatternGenerator.Models;
 
 namespace EolTestPatternGenerator.Controls;
 
+/// <summary>
+/// 可在WinForms设计器中复用的白框参数编辑器；只负责编辑配置，不直接绘图。
+/// </summary>
 public partial class BorderOverlayEditor : UserControl
 {
     private bool _updating;
@@ -37,6 +40,7 @@ public partial class BorderOverlayEditor : UserControl
     public void SetSettings(BorderOverlaySettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        // 批量回写控件时抑制事件，避免加载配置触发重复预览和递归保存。
         _updating = true;
         try
         {

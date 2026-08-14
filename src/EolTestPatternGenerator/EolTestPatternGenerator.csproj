@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
@@ -18,6 +19,54 @@
   <ItemGroup>
     <PackageReference Include="OpenCvSharp4" Version="4.13.0.20260627" />
     <PackageReference Include="OpenCvSharp4.runtime.win" Version="4.13.0.20260627" />
+  </ItemGroup>
+
+  <!--
+    将窗体/用户控件及其 Designer 文件的层级关系写入共享项目文件。
+    不依赖本机 .csproj.user，Visual Studio 才能稳定取得设计器所需的项目 hierarchy。
+  -->
+  <ItemGroup>
+    <Compile Update="MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="MainForm.Designer.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="PhaseStripeForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="PhaseStripeForm.Designer.cs">
+      <DependentUpon>PhaseStripeForm.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="ScreenOneForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="ScreenOneForm.Designer.cs">
+      <DependentUpon>ScreenOneForm.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="NonIntegerFusionForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="NonIntegerFusionForm.Designer.cs">
+      <DependentUpon>NonIntegerFusionForm.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="Controls\BorderOverlayEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Controls\BorderOverlayEditor.Designer.cs">
+      <DependentUpon>BorderOverlayEditor.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="Controls\ImagePreviewControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Controls\ImagePreviewControl.Designer.cs">
+      <DependentUpon>ImagePreviewControl.cs</DependentUpon>
+    </Compile>
   </ItemGroup>
 
 </Project>

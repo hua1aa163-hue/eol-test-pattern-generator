@@ -65,14 +65,74 @@ public static class ImageFileWriter
         }
 
         ImageEncodingParam[] parameters = CreateEncodingParameters(options);
+        // 先编码成内存字节再由 .NET 写盘，可稳定支持中文等 Unicode 输出路径。
         Cv2.ImEncode(extension, image, out byte[] encoded, parameters);
         if (encoded.Length == 0)
         {
             throw new IOException($"OpenCV 无法编码 {extension} 图像：{fullPath}");
         }
 
-        File.WriteAllBytes(fullPath, encoded);
+        WriteAllBytesAtomically(fullPath, encoded);
         return fullPath;
+    }
+
+    /// <summary>
+    /// 在目标目录完成临时文件后再替换正式文件，避免编码成功但写盘中断时截断旧图片。
+    /// </summary>
+    internal static void WriteAllBytesAtomically(string path, ReadOnlySpan<byte> bytes)
+    {
+        string targetPath = Path.GetFullPath(path);
+        string directory = Path.GetDirectoryName(targetPath)
+                           ?? throw new InvalidOperationException("图片输出路径没有有效目录。");
+        Directory.CreateDirectory(directory);
+
+        string temporaryPath = Path.Combine(
+            directory,
+            $".{Path.GetFileName(targetPath)}.{Environment.ProcessId}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            using (var stream = new FileStream(
+                       temporaryPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.None,
+                       bufferSize: 64 * 1024,
+                       FileOptions.WriteThrough))
+            {
+                stream.Write(bytes);
+                stream.Flush(flushToDisk: true);
+            }
+
+            if (!File.Exists(targetPath))
+            {
+                File.Move(temporaryPath, targetPath);
+            }
+            else
+            {
+                try
+                {
+                    File.Replace(temporaryPath, targetPath, destinationBackupFileName: null, ignoreMetadataErrors: true);
+                }
+                catch (Exception exception) when (exception is IOException or PlatformNotSupportedException)
+                {
+                    File.Move(temporaryPath, targetPath, overwrite: true);
+                }
+            }
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
+            }
+            catch
+            {
+                // 清理失败不能覆盖原始写盘异常。
+            }
+        }
     }
 
     private static ImageEncodingParam[] CreateEncodingParameters(ImageExportOptions options)

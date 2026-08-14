@@ -5,6 +5,7 @@ namespace EolTestPatternGenerator.Services;
 
 public static class PatternGenerator
 {
+    // OpenCV 的 Scalar 通道顺序是 B、G、R，而界面对用户展示的是 R、G、B。
     private static readonly Scalar White = new(255, 255, 255);
     private static readonly Scalar Red = new(0, 0, 255);
     private static readonly Scalar Green = new(0, 255, 0);
@@ -12,8 +13,10 @@ public static class PatternGenerator
 
     public static Mat Generate(PatternSettings settings)
     {
+        // 返回的 Mat 由调用方负责 Dispose；预览和导出路径均使用 using 接管生命周期。
         Validate(settings);
 
+        // 所有图卡统一转换为三通道8位BGR，避免编码时出现透明度或调色板差异。
         Mat canvas = settings.PatternType == PatternType.ImportedImage
             ? LoadImportedImage(settings)
             : new Mat(settings.CanvasHeight, settings.CanvasWidth, MatType.CV_8UC3, Scalar.Black);
@@ -67,6 +70,7 @@ public static class PatternGenerator
                 throw new ArgumentOutOfRangeException(nameof(settings.PatternType), settings.PatternType, null);
         }
 
+        // 白框始终最后绘制，因此可覆盖内置图卡和导入的外部底图。
         if (settings.BorderOverlay.Enabled)
         {
             DrawBorder(
@@ -166,6 +170,7 @@ public static class PatternGenerator
             }
 
             var resized = new Mat();
+            // 检测图使用最近邻缩放，防止双线性插值产生0/255之外的中间色。
             Cv2.Resize(
                 bgr8,
                 resized,
@@ -236,9 +241,11 @@ public static class PatternGenerator
 
     private static void DrawBorder(Mat canvas, int x, int y, int width, int height, int lineWidth)
     {
+        // width/height 表示外包矩形尺寸，右边和下边是排他边界；越界由填充函数裁剪。
         int thickness = Math.Min(lineWidth, Math.Min(width, height));
         if ((2 * thickness) >= width || (2 * thickness) >= height)
         {
+            // 线宽覆盖内部空间时退化为实心矩形，避免四条边重叠产生不一致。
             FillRectangleClipped(canvas, x, y, width, height, White);
             return;
         }
@@ -269,6 +276,7 @@ public static class PatternGenerator
             for (int x = left; x < right; x++)
             {
                 int u = x - settings.PatternX;
+                // 使用局部坐标计算8步周期；正模保证裁剪到负坐标后周期仍连续。
                 int phaseIndex = PositiveModulo(v - (3 * u) + settings.Phase - 1, 8);
                 int offset = x * 3;
 
@@ -295,6 +303,7 @@ public static class PatternGenerator
         byte blue,
         RgbPixelOrder order)
     {
+        // 排列仅置换三个颜色通道，不改变像素横向坐标或8步周期。
         return order switch
         {
             RgbPixelOrder.RGB => (red, green, blue),
@@ -415,6 +424,7 @@ public static class PatternGenerator
             return 0;
         }
 
+        // 以首末圆心跨度插值，确保最后一个圆心精确落在起点加跨度的位置。
         return (int)Math.Round(span * index / (double)(count - 1), MidpointRounding.AwayFromZero);
     }
 

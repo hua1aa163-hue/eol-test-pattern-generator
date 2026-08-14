@@ -2,6 +2,7 @@ namespace EolTestPatternGenerator.Models;
 
 public sealed class PatternSettings
 {
+    /// <summary>选择底图算法；白框是独立叠加层，不占用图卡类型。</summary>
     public PatternType PatternType { get; set; } = PatternType.Border;
 
     public int CanvasWidth { get; set; } = 1920;
@@ -30,6 +31,7 @@ public sealed class PatternSettings
 
     public int Phase { get; set; } = 1;
 
+    /// <summary>相移图的逻辑通道排列；默认RGB保持旧样图逐像素兼容。</summary>
     public RgbPixelOrder PixelOrder { get; set; } = RgbPixelOrder.RGB;
 
     public int DotRadius { get; set; } = 4;
@@ -47,12 +49,14 @@ public sealed class PatternSettings
     /// </summary>
     public string SourceImagePath { get; set; } = string.Empty;
 
+    /// <summary>所有底图生成完毕后绘制的可选白框。</summary>
     public BorderOverlaySettings BorderOverlay { get; set; } = new();
 
     public PatternSettings Clone()
     {
         var clone = (PatternSettings)MemberwiseClone();
         clone.SourceImagePath = SourceImagePath;
+        // 配置快照必须深拷贝可变的白框对象，避免不同图卡参数相互污染。
         clone.BorderOverlay = BorderOverlay.Clone();
         return clone;
     }

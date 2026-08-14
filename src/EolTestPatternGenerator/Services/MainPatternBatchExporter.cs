@@ -7,6 +7,7 @@ namespace EolTestPatternGenerator.Services;
 /// </summary>
 public static class MainPatternBatchExporter
 {
+    // 相移8张和1号屏三张各自有独立参数窗口，这里只保留主窗口的固定批次。
     private static readonly PatternType[] ExportOrder =
     {
         PatternType.Border,
@@ -33,6 +34,7 @@ public static class MainPatternBatchExporter
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
         ArgumentNullException.ThrowIfNull(exportOptions);
 
+        // 批次包含精确纯色图，拒绝会引入中间通道值的有损编码。
         if (exportOptions.Format is not (ImageFormatKind.Png or ImageFormatKind.Bmp or ImageFormatKind.Tiff))
         {
             throw new ArgumentException(

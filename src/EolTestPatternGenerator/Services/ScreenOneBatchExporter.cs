@@ -4,11 +4,29 @@ namespace EolTestPatternGenerator.Services;
 
 public static class ScreenOneBatchExporter
 {
+    /// <summary>
+    /// 使用参考图默认参数导出三张图卡。保留此重载以兼容原有调用。
+    /// </summary>
     public static IReadOnlyList<string> ExportReferenceThree(
         string outputDirectory,
         ImageExportOptions exportOptions)
     {
+        return ExportReferenceThree(
+            outputDirectory,
+            ScreenOneSettings.CreateReferenceDefault(),
+            exportOptions);
+    }
+
+    /// <summary>
+    /// 使用窗口中可编辑的画布和左右区域参数导出三张图卡。
+    /// </summary>
+    public static IReadOnlyList<string> ExportReferenceThree(
+        string outputDirectory,
+        ScreenOneSettings settings,
+        ImageExportOptions exportOptions)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(exportOptions);
 
         if (exportOptions.Format is ImageFormatKind.Jpeg or ImageFormatKind.WebP)
@@ -18,21 +36,18 @@ public static class ScreenOneBatchExporter
 
         Directory.CreateDirectory(outputDirectory);
         var results = new List<string>(3);
-        Export("1.B_W", ScreenSplitMode.TwoDimensionalBlackLeft);
-        Export("2.W_B", ScreenSplitMode.TwoDimensionalBlackRight);
-        Export("3.B", ScreenSplitMode.TwoDimensionalBlackBoth);
+        Export(ScreenOneCardKind.BlackLeftWhiteRight);
+        Export(ScreenOneCardKind.WhiteLeftBlackRight);
+        Export(ScreenOneCardKind.BlackBoth);
         return results;
 
-        void Export(string fileBaseName, ScreenSplitMode mode)
+        void Export(ScreenOneCardKind cardKind)
         {
-            PatternSettings settings = PatternPresets.Create(PatternType.ScreenSplit);
-            settings.CanvasWidth = 3200;
-            settings.CanvasHeight = 2000;
-            settings.ScreenSplitMode = mode;
-            using var image = PatternGenerator.Generate(settings);
+            using var image = ScreenOnePatternGenerator.Generate(settings, cardKind);
             string path = Path.Combine(
                 outputDirectory,
-                fileBaseName + ImageFileWriter.GetExtension(exportOptions.Format));
+                ScreenOnePatternGenerator.GetFileBaseName(cardKind) +
+                ImageFileWriter.GetExtension(exportOptions.Format));
             results.Add(ImageFileWriter.Write(path, image, exportOptions));
         }
     }
