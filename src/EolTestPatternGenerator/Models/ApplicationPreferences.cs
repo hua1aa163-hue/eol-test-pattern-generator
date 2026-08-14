@@ -6,9 +6,11 @@ namespace EolTestPatternGenerator.Models;
 /// </summary>
 public sealed class ApplicationPreferences
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     public int Version { get; set; } = CurrentVersion;
+
+    public WorkspacePreferences Workspace { get; set; } = new();
 
     public MainPreferences Main { get; set; } = new();
 
@@ -17,9 +19,12 @@ public sealed class ApplicationPreferences
     public ScreenOnePreferences ScreenOne { get; set; } = new();
 
     /// <summary>
-    /// 为后续接入“非整数融合图”预留独立配置节，避免与现有八步相移参数混用。
+    /// 非整数连续融合、离散光源和图片转 LightTools 共用的独立配置节。
     /// </summary>
     public NonIntegerBlendPreferences NonIntegerBlend { get; set; } = new();
+
+    /// <summary>图片静止序列转视频页面的列表、顺序、时长及输出参数。</summary>
+    public StillVideoPreferences StillVideo { get; set; } = new();
 
     /// <summary>
     /// 返回不共享可变引用的副本，防止界面线程在持久化过程中修改同一对象。
@@ -29,28 +34,54 @@ public sealed class ApplicationPreferences
         return new ApplicationPreferences
         {
             Version = Version,
+            Workspace = (Workspace ?? new WorkspacePreferences()).Clone(),
             Main = (Main ?? new MainPreferences()).Clone(),
             PhaseStripe = (PhaseStripe ?? new PhaseStripePreferences()).Clone(),
             ScreenOne = (ScreenOne ?? new ScreenOnePreferences()).Clone(),
-            NonIntegerBlend = (NonIntegerBlend ?? new NonIntegerBlendPreferences()).Clone()
+            NonIntegerBlend = (NonIntegerBlend ?? new NonIntegerBlendPreferences()).Clone(),
+            StillVideo = (StillVideo ?? new StillVideoPreferences()).Clone()
         };
     }
 
     /// <summary>
-    /// JSON 中缺失或显式写为 null 的节恢复为默认对象。
-    /// 数值有效范围由各窗体写入 NumericUpDown 时负责截断，此处不改变用户数值。
+    /// JSON 中缺失或显式写为 null 的节恢复为默认对象，并补齐 v2 几何上下文。
+    /// 除全屏图卡固定四边距为 0、旧白框尺寸迁移外，不截断用户数值。
     /// </summary>
     internal void RestoreMissingSections()
     {
+        Workspace ??= new WorkspacePreferences();
         Main ??= new MainPreferences();
         PhaseStripe ??= new PhaseStripePreferences();
         ScreenOne ??= new ScreenOnePreferences();
         NonIntegerBlend ??= new NonIntegerBlendPreferences();
+        StillVideo ??= new StillVideoPreferences();
 
+        Workspace.RestoreMissingSections();
         Main.RestoreMissingSections();
         PhaseStripe.RestoreMissingSections();
         ScreenOne.RestoreMissingSections();
         NonIntegerBlend.RestoreMissingSections();
+        StillVideo.RestoreMissingSections();
+    }
+}
+
+/// <summary>统一工作台自身的界面状态。</summary>
+public sealed class WorkspacePreferences
+{
+    /// <summary>左侧导航上次选中的页；窗体加载时会按实际页数安全截断。</summary>
+    public int SelectedNavigationIndex { get; set; }
+
+    public WorkspacePreferences Clone()
+    {
+        return new WorkspacePreferences
+        {
+            SelectedNavigationIndex = SelectedNavigationIndex
+        };
+    }
+
+    internal void RestoreMissingSections()
+    {
+        // 当前只有值类型字段；保留入口供以后添加工作台字符串或集合设置。
     }
 }
 
@@ -71,7 +102,7 @@ public sealed class PreviewOverlayPreferences
     }
 }
 
-/// <summary>主窗口中每种图卡的独立参数以及当前导出选项。</summary>
+/// <summary>“基础图卡”页面中每种图卡的独立参数以及当前导出选项。</summary>
 public sealed class MainPreferences
 {
     public PatternType SelectedPatternType { get; set; } = PatternType.Border;
@@ -80,8 +111,14 @@ public sealed class MainPreferences
 
     public int Quality { get; set; } = 95;
 
+    /// <summary>主界面最近一次选择导入图片时所在的目录。</summary>
+    public string LastImportedImageDirectory { get; set; } = string.Empty;
+
+    /// <summary>主界面单张保存或批量导出最近使用的目录。</summary>
+    public string LastExportDirectory { get; set; } = string.Empty;
+
     /// <summary>
-    /// 主窗口按图卡类型保存参数快照；首次运行时为空，由窗体以 PatternPresets 补齐。
+    /// 基础图卡页面按图卡类型保存参数快照；首次运行时为空，由窗体以 PatternPresets 补齐。
     /// 其中也包含导入图片路径和每种图卡自己的白框参数。
     /// </summary>
     public Dictionary<PatternType, PatternSettings> PatternProfiles { get; set; } = new();
@@ -95,6 +132,8 @@ public sealed class MainPreferences
             SelectedPatternType = SelectedPatternType,
             OutputFormat = OutputFormat,
             Quality = Quality,
+            LastImportedImageDirectory = LastImportedImageDirectory ?? string.Empty,
+            LastExportDirectory = LastExportDirectory ?? string.Empty,
             PreviewOverlay = (PreviewOverlay ?? new PreviewOverlayPreferences()).Clone(),
             PatternProfiles = new Dictionary<PatternType, PatternSettings>()
         };
@@ -117,6 +156,8 @@ public sealed class MainPreferences
     {
         PatternProfiles ??= new Dictionary<PatternType, PatternSettings>();
         PreviewOverlay ??= new PreviewOverlayPreferences();
+        LastImportedImageDirectory ??= string.Empty;
+        LastExportDirectory ??= string.Empty;
 
         // 单个旧配置项也可能缺少白框对象；补齐引用但不校正其数值。
         foreach (PatternSettings settings in PatternProfiles.Values)
@@ -125,12 +166,15 @@ public sealed class MainPreferences
             {
                 settings.BorderOverlay ??= new BorderOverlaySettings();
                 settings.SourceImagePath ??= string.Empty;
+                settings.NormalizeFullCanvasMargins();
+                settings.NormalizeSingleAxisDotSpans();
+                settings.BorderOverlay.NormalizeLegacyGeometry(settings.CanvasWidth, settings.CanvasHeight);
             }
         }
     }
 }
 
-/// <summary>现有“串扰图卡”（RGB 八步二值相移）窗口的用户输入。</summary>
+/// <summary>“串扰像素排列”页面的可配置周期、当前相位和导出选项。</summary>
 public sealed class PhaseStripePreferences
 {
     public PatternSettings Settings { get; set; } = CreateDefaultSettings();
@@ -138,6 +182,8 @@ public sealed class PhaseStripePreferences
     public ImageFormatKind OutputFormat { get; set; } = ImageFormatKind.Png;
 
     public int Quality { get; set; } = 95;
+
+    public string LastExportDirectory { get; set; } = string.Empty;
 
     public PreviewOverlayPreferences PreviewOverlay { get; set; } = new();
 
@@ -148,6 +194,7 @@ public sealed class PhaseStripePreferences
             Settings = (Settings ?? CreateDefaultSettings()).Clone(),
             OutputFormat = OutputFormat,
             Quality = Quality,
+            LastExportDirectory = LastExportDirectory ?? string.Empty,
             PreviewOverlay = (PreviewOverlay ?? new PreviewOverlayPreferences()).Clone()
         };
     }
@@ -158,6 +205,8 @@ public sealed class PhaseStripePreferences
         Settings.PatternType = PatternType.PhaseStripes;
         Settings.BorderOverlay ??= new BorderOverlaySettings();
         Settings.SourceImagePath ??= string.Empty;
+        Settings.BorderOverlay.NormalizeLegacyGeometry(Settings.CanvasWidth, Settings.CanvasHeight);
+        LastExportDirectory ??= string.Empty;
         PreviewOverlay ??= new PreviewOverlayPreferences();
     }
 
@@ -170,7 +219,7 @@ public sealed class PhaseStripePreferences
     }
 }
 
-/// <summary>“显示器3D图/1号屏”窗口的画布、左右矩形和导出选项。</summary>
+/// <summary>“显示器”页面的画布、左右区域和导出选项。</summary>
 public sealed class ScreenOnePreferences
 {
     public ScreenOneSettings Settings { get; set; } = ScreenOneSettings.CreateReferenceDefault();
@@ -180,6 +229,8 @@ public sealed class ScreenOnePreferences
     public ImageFormatKind OutputFormat { get; set; } = ImageFormatKind.Png;
 
     public int Quality { get; set; } = 95;
+
+    public string LastExportDirectory { get; set; } = string.Empty;
 
     public PreviewOverlayPreferences PreviewOverlay { get; set; } = new();
 
@@ -191,6 +242,7 @@ public sealed class ScreenOnePreferences
             CardKind = CardKind,
             OutputFormat = OutputFormat,
             Quality = Quality,
+            LastExportDirectory = LastExportDirectory ?? string.Empty,
             PreviewOverlay = (PreviewOverlay ?? new PreviewOverlayPreferences()).Clone()
         };
     }
@@ -198,6 +250,7 @@ public sealed class ScreenOnePreferences
     internal void RestoreMissingSections()
     {
         Settings ??= ScreenOneSettings.CreateReferenceDefault();
+        LastExportDirectory ??= string.Empty;
         PreviewOverlay ??= new PreviewOverlayPreferences();
     }
 }
@@ -336,6 +389,7 @@ public sealed class MatlabNonIntegerPreferences
         OutputPrefix ??= "fused";
         OutputDirectory ??= string.Empty;
         BorderOverlay ??= new BorderOverlaySettings();
+        BorderOverlay.NormalizeLegacyGeometry(CanvasWidth, CanvasHeight);
     }
 }
 
@@ -424,6 +478,7 @@ public sealed class DiscreteNonIntegerPreferences
         OutputPrefix ??= "Lt_Source";
         OutputDirectory ??= string.Empty;
         BorderOverlay ??= new BorderOverlaySettings();
+        BorderOverlay.NormalizeLegacyGeometry(Width, Height);
     }
 }
 

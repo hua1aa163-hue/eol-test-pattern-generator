@@ -21,20 +21,26 @@ public partial class BorderOverlayEditor : UserControl
     public Size CanvasSize
     {
         get => _canvasSize;
-        set => _canvasSize = value;
+        set
+        {
+            _canvasSize = new Size(Math.Max(1, value.Width), Math.Max(1, value.Height));
+            UpdateComputedSize();
+        }
     }
 
     public BorderOverlaySettings GetSettings()
     {
-        return new BorderOverlaySettings
+        var settings = new BorderOverlaySettings
         {
             Enabled = checkEnabled.Checked,
-            X = (int)numericX.Value,
-            Y = (int)numericY.Value,
-            Width = (int)numericWidth.Value,
-            Height = (int)numericHeight.Value,
             LineWidth = (int)numericLineWidth.Value
         };
+        settings.SetMargins(new RegionMargins(
+            (int)numericX.Value,
+            (int)numericY.Value,
+            (int)numericWidth.Value,
+            (int)numericHeight.Value));
+        return settings;
     }
 
     public void SetSettings(BorderOverlaySettings settings)
@@ -45,10 +51,11 @@ public partial class BorderOverlayEditor : UserControl
         try
         {
             checkEnabled.Checked = settings.Enabled;
-            SetValue(numericX, settings.X);
-            SetValue(numericY, settings.Y);
-            SetValue(numericWidth, settings.Width);
-            SetValue(numericHeight, settings.Height);
+            RegionMargins margins = settings.GetMargins();
+            SetValue(numericX, margins.Left);
+            SetValue(numericY, margins.Top);
+            SetValue(numericWidth, margins.Right);
+            SetValue(numericHeight, margins.Bottom);
             SetValue(numericLineWidth, settings.LineWidth);
         }
         finally
@@ -57,11 +64,13 @@ public partial class BorderOverlayEditor : UserControl
         }
 
         UpdateEnabledState();
+        UpdateComputedSize();
     }
 
     private void ParameterChanged(object? sender, EventArgs e)
     {
         UpdateEnabledState();
+        UpdateComputedSize();
         if (!_updating)
         {
             SettingsChanged?.Invoke(this, EventArgs.Empty);
@@ -73,14 +82,26 @@ public partial class BorderOverlayEditor : UserControl
         _updating = true;
         try
         {
-            SetValue(numericX, (int)Math.Floor((_canvasSize.Width - (double)numericWidth.Value) / 2));
-            SetValue(numericY, (int)Math.Floor((_canvasSize.Height - (double)numericHeight.Value) / 2));
+            long width = (long)_canvasSize.Width - (int)numericX.Value - (int)numericWidth.Value;
+            long height = (long)_canvasSize.Height - (int)numericY.Value - (int)numericHeight.Value;
+            if (width <= 0 || height <= 0)
+            {
+                return;
+            }
+
+            int left = checked((int)(((long)_canvasSize.Width - width) / 2));
+            int top = checked((int)(((long)_canvasSize.Height - height) / 2));
+            SetValue(numericX, left);
+            SetValue(numericY, top);
+            SetValue(numericWidth, checked((int)((long)_canvasSize.Width - width - left)));
+            SetValue(numericHeight, checked((int)((long)_canvasSize.Height - height - top)));
         }
         finally
         {
             _updating = false;
         }
 
+        UpdateComputedSize();
         SettingsChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -98,5 +119,16 @@ public partial class BorderOverlayEditor : UserControl
     private static void SetValue(NumericUpDown control, int value)
     {
         control.Value = Math.Min(control.Maximum, Math.Max(control.Minimum, value));
+    }
+
+    private void UpdateComputedSize()
+    {
+        long width = (long)_canvasSize.Width - (int)numericX.Value - (int)numericWidth.Value;
+        long height = (long)_canvasSize.Height - (int)numericY.Value - (int)numericHeight.Value;
+        bool valid = width > 0 && height > 0;
+        labelHelp.ForeColor = valid ? Color.DimGray : Color.Firebrick;
+        labelHelp.Text = valid
+            ? $"实时白框尺寸：{width:N0} × {height:N0} px\n四边距允许为负值，越界部分会裁剪。"
+            : $"白框尺寸无效：{width:N0} × {height:N0} px";
     }
 }

@@ -29,6 +29,36 @@ public partial class NonIntegerFusionForm : Form
         InitializeComponent();
     }
 
+    /// <summary>统一工作台在两阶段关闭前只读检查后台导出状态。</summary>
+    public bool IsExporting => _activeExports > 0;
+
+    /// <summary>
+    /// 将三个原有页签作为统一工作台的直接功能页使用。
+    /// 工作台左侧已经承担导航职责，因此嵌入时把内部页签头压缩为不可见；
+    /// 独立打开本窗体时仍保留 Designer 中的三个页签标签。
+    /// </summary>
+    public void ConfigureAsWorkspacePage()
+    {
+        Text = "非整数融合与 LightTools";
+        tabModes.Appearance = TabAppearance.FlatButtons;
+        tabModes.SizeMode = TabSizeMode.Fixed;
+        tabModes.ItemSize = new System.Drawing.Size(0, 1);
+        tabModes.TabStop = false;
+    }
+
+    /// <summary>
+    /// 从工作台导航定位到连续融合、离散光源或图片转换页。
+    /// </summary>
+    public void SelectWorkspaceSection(int sectionIndex)
+    {
+        if (sectionIndex < 0 || sectionIndex >= tabModes.TabCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sectionIndex));
+        }
+
+        tabModes.SelectedIndex = sectionIndex;
+    }
+
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
@@ -589,9 +619,11 @@ public partial class NonIntegerFusionForm : Form
     private void BrowseImageInto(TextBox target)
     {
         string currentPath = target.Text.Trim();
+        openImageDialog.InitialDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            preferredDirectory: null,
+            fallbackFilePath: currentPath);
         if (File.Exists(currentPath))
         {
-            openImageDialog.InitialDirectory = Path.GetDirectoryName(Path.GetFullPath(currentPath));
             openImageDialog.FileName = Path.GetFileName(currentPath);
         }
         else
@@ -623,11 +655,8 @@ public partial class NonIntegerFusionForm : Form
         saveFileDialog.Filter = ImageFileWriter.GetDialogFilter(options.Format);
         saveFileDialog.DefaultExt = extension.TrimStart('.');
         saveFileDialog.FileName = defaultBaseName + extension;
-        if (!string.IsNullOrWhiteSpace(_continuousOutputDirectory) &&
-            Directory.Exists(_continuousOutputDirectory))
-        {
-            saveFileDialog.InitialDirectory = _continuousOutputDirectory;
-        }
+        saveFileDialog.InitialDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            _continuousOutputDirectory);
 
         if (saveFileDialog.ShowDialog(this) != DialogResult.OK)
         {
@@ -857,10 +886,8 @@ public partial class NonIntegerFusionForm : Form
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(_discreteOutputDirectory) && Directory.Exists(_discreteOutputDirectory))
-        {
-            saveFileDialog.InitialDirectory = _discreteOutputDirectory;
-        }
+        saveFileDialog.InitialDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            _discreteOutputDirectory);
 
         if (saveFileDialog.ShowDialog(this) != DialogResult.OK)
         {
@@ -1233,10 +1260,9 @@ public partial class NonIntegerFusionForm : Form
     private string? SelectFolder(string description, string previousDirectory)
     {
         folderBrowserDialog.Description = description;
-        if (!string.IsNullOrWhiteSpace(previousDirectory) && Directory.Exists(previousDirectory))
-        {
-            folderBrowserDialog.SelectedPath = previousDirectory;
-        }
+        string initialDirectory = DialogDirectoryResolver.ResolveExistingDirectory(previousDirectory);
+        folderBrowserDialog.InitialDirectory = initialDirectory;
+        folderBrowserDialog.SelectedPath = initialDirectory;
 
         return folderBrowserDialog.ShowDialog(this) == DialogResult.OK
             ? folderBrowserDialog.SelectedPath

@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace EolTestPatternGenerator;
 
 /// <summary>
-/// 编辑、预览并导出“1号屏”三张二值图卡的独立窗口。
+/// 编辑、预览并导出“显示器”三张二值图卡的功能窗体。
 /// 可见控件均在 ScreenOneForm.Designer.cs 中声明，便于使用 WinForms 设计器调整。
 /// </summary>
 public partial class ScreenOneForm : Form
@@ -14,10 +14,22 @@ public partial class ScreenOneForm : Form
     private bool _isRendering;
     private bool _isExporting;
     private bool _userInterfaceInitialized;
+    private string _lastExportDirectory = string.Empty;
 
     public ScreenOneForm()
     {
         InitializeComponent();
+    }
+
+    /// <summary>统一工作台在两阶段关闭前只读检查后台导出状态。</summary>
+    public bool IsExporting => _isExporting;
+
+    /// <summary>
+    /// 统一工作台中的页面显示名称。
+    /// </summary>
+    public void ConfigureAsWorkspacePage()
+    {
+        Text = "显示器";
     }
 
     protected override void OnLoad(EventArgs e)
@@ -61,8 +73,19 @@ public partial class ScreenOneForm : Form
             _updatingControls = false;
         }
 
+        _lastExportDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            preferences.LastExportDirectory);
+        ApplyExportDialogInitialDirectory();
+
         UpdateExportControls();
         UpdatePreview(resetView: true);
+    }
+
+    private void ApplyExportDialogInitialDirectory()
+    {
+        _lastExportDirectory = DialogDirectoryResolver.ResolveExistingDirectory(_lastExportDirectory);
+        saveFileDialog.InitialDirectory = _lastExportDirectory;
+        folderBrowserDialog.InitialDirectory = _lastExportDirectory;
     }
 
     /// <summary>
@@ -70,19 +93,14 @@ public partial class ScreenOneForm : Form
     /// </summary>
     private ScreenOneSettings ReadSettings()
     {
-        return new ScreenOneSettings
+        var settings = new ScreenOneSettings
         {
             CanvasWidth = (int)numericCanvasWidth.Value,
-            CanvasHeight = (int)numericCanvasHeight.Value,
-            LeftX = (int)numericLeftX.Value,
-            LeftY = (int)numericLeftY.Value,
-            LeftWidth = (int)numericLeftWidth.Value,
-            LeftHeight = (int)numericLeftHeight.Value,
-            RightX = (int)numericRightX.Value,
-            RightY = (int)numericRightY.Value,
-            RightWidth = (int)numericRightWidth.Value,
-            RightHeight = (int)numericRightHeight.Value
+            CanvasHeight = (int)numericCanvasHeight.Value
         };
+        settings.SetLeftMargins(leftRegionMarginsEditor.GetMargins());
+        settings.SetRightMargins(rightRegionMarginsEditor.GetMargins());
+        return settings;
     }
 
     /// <summary>
@@ -96,14 +114,11 @@ public partial class ScreenOneForm : Form
         {
             SetNumericValue(numericCanvasWidth, settings.CanvasWidth);
             SetNumericValue(numericCanvasHeight, settings.CanvasHeight);
-            SetNumericValue(numericLeftX, settings.LeftX);
-            SetNumericValue(numericLeftY, settings.LeftY);
-            SetNumericValue(numericLeftWidth, settings.LeftWidth);
-            SetNumericValue(numericLeftHeight, settings.LeftHeight);
-            SetNumericValue(numericRightX, settings.RightX);
-            SetNumericValue(numericRightY, settings.RightY);
-            SetNumericValue(numericRightWidth, settings.RightWidth);
-            SetNumericValue(numericRightHeight, settings.RightHeight);
+            Size canvasSize = new(settings.CanvasWidth, settings.CanvasHeight);
+            leftRegionMarginsEditor.CanvasSize = canvasSize;
+            rightRegionMarginsEditor.CanvasSize = canvasSize;
+            leftRegionMarginsEditor.SetMargins(settings.GetLeftMargins());
+            rightRegionMarginsEditor.SetMargins(settings.GetRightMargins());
         }
         finally
         {
@@ -154,6 +169,21 @@ public partial class ScreenOneForm : Form
     }
 
     private void Parameter_ValueChanged(object? sender, EventArgs e)
+    {
+        if (ReferenceEquals(sender, numericCanvasWidth) || ReferenceEquals(sender, numericCanvasHeight))
+        {
+            Size canvasSize = new((int)numericCanvasWidth.Value, (int)numericCanvasHeight.Value);
+            leftRegionMarginsEditor.CanvasSize = canvasSize;
+            rightRegionMarginsEditor.CanvasSize = canvasSize;
+        }
+
+        if (!_updatingControls)
+        {
+            SchedulePreview();
+        }
+    }
+
+    private void regionMarginsEditor_MarginsChanged(object? sender, EventArgs e)
     {
         if (!_updatingControls)
         {
@@ -211,7 +241,7 @@ public partial class ScreenOneForm : Form
     {
         WriteSettings(ScreenOneSettings.CreateReferenceDefault());
         comboCardKind.SelectedIndex = (int)ScreenOneCardKind.BlackLeftWhiteRight;
-        statusLabel.Text = "已恢复三张参考图的默认画布和矩形参数。";
+        statusLabel.Text = "已恢复显示器三张参考图的默认画布和区域边距。";
         UpdatePreview(resetView: true);
     }
 
@@ -241,8 +271,8 @@ public partial class ScreenOneForm : Form
             labelPreviewInfo.Text =
                 $"预览：{settings.CanvasWidth:N0} × {settings.CanvasHeight:N0} | {fileBaseName}";
             statusLabel.Text =
-                $"就绪 | 左区域 {settings.LeftWidth:N0}×{settings.LeftHeight:N0} @ ({settings.LeftX},{settings.LeftY}) | " +
-                $"右区域 {settings.RightWidth:N0}×{settings.RightHeight:N0} @ ({settings.RightX},{settings.RightY})";
+                $"就绪 | 左区域 {settings.CalculatedLeftWidth:N0}×{settings.CalculatedLeftHeight:N0} | " +
+                $"右区域 {settings.CalculatedRightWidth:N0}×{settings.CalculatedRightHeight:N0}";
         }
         catch (Exception exception)
         {
@@ -267,7 +297,7 @@ public partial class ScreenOneForm : Form
 
         DialogResult result = MessageBox.Show(
             this,
-            "1号屏图卡要求 RGB 通道严格只有 0 和 255。JPEG/WebP 会产生中间颜色值。\n\n是否切换为 PNG 后继续？",
+            "显示器图卡要求 RGB 通道严格只有 0 和 255。JPEG/WebP 会产生中间颜色值。\n\n是否切换为 PNG 后继续？",
             "需要无损格式",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning,
@@ -297,11 +327,16 @@ public partial class ScreenOneForm : Form
         saveFileDialog.Filter = ImageFileWriter.GetDialogFilter(exportOptions.Format);
         saveFileDialog.DefaultExt = extension.TrimStart('.');
         saveFileDialog.FileName = ScreenOnePatternGenerator.GetFileBaseName(cardKind) + extension;
+        ApplyExportDialogInitialDirectory();
 
         if (saveFileDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
         }
+
+        _lastExportDirectory = DialogDirectoryResolver.RememberFileDirectory(
+            saveFileDialog.FileName,
+            _lastExportDirectory);
 
         try
         {
@@ -344,10 +379,15 @@ public partial class ScreenOneForm : Form
             return;
         }
 
+        ApplyExportDialogInitialDirectory();
         if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
         }
+
+        _lastExportDirectory = DialogDirectoryResolver.RememberDirectory(
+            folderBrowserDialog.SelectedPath,
+            _lastExportDirectory);
 
         // 后台任务只使用快照，防止导出过程中参数被界面修改。
         ScreenOneSettings settings = ReadSettings().Clone();
@@ -420,7 +460,7 @@ public partial class ScreenOneForm : Form
             e.Cancel = true;
             MessageBox.Show(
                 this,
-                "1号屏图卡正在导出，请等待导出完成后再关闭窗口。",
+                "显示器图卡正在导出，请等待导出完成后再关闭窗口。",
                 "正在导出",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -438,6 +478,7 @@ public partial class ScreenOneForm : Form
             CardKind = SelectedCardKind,
             OutputFormat = SelectedFormat,
             Quality = (int)numericQuality.Value,
+            LastExportDirectory = _lastExportDirectory,
             PreviewOverlay = new PreviewOverlayPreferences
             {
                 ShowCenterCrosshair = previewControl.ShowCenterCrosshair,

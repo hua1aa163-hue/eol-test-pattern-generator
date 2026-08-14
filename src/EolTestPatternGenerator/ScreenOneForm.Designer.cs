@@ -35,23 +35,9 @@ partial class ScreenOneForm
         comboCardKind = new ComboBox();
         labelCardKind = new Label();
         groupLeftRegion = new GroupBox();
-        numericLeftHeight = new NumericUpDown();
-        labelLeftHeight = new Label();
-        numericLeftWidth = new NumericUpDown();
-        labelLeftWidth = new Label();
-        numericLeftY = new NumericUpDown();
-        labelLeftY = new Label();
-        numericLeftX = new NumericUpDown();
-        labelLeftX = new Label();
+        leftRegionMarginsEditor = new RegionMarginsEditor();
         groupRightRegion = new GroupBox();
-        numericRightHeight = new NumericUpDown();
-        labelRightHeight = new Label();
-        numericRightWidth = new NumericUpDown();
-        labelRightWidth = new Label();
-        numericRightY = new NumericUpDown();
-        labelRightY = new Label();
-        numericRightX = new NumericUpDown();
-        labelRightX = new Label();
+        rightRegionMarginsEditor = new RegionMarginsEditor();
         groupExport = new GroupBox();
         labelExportHelp = new Label();
         numericQuality = new NumericUpDown();
@@ -83,15 +69,7 @@ partial class ScreenOneForm
         ((System.ComponentModel.ISupportInitialize)numericCanvasWidth).BeginInit();
         groupCard.SuspendLayout();
         groupLeftRegion.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)numericLeftHeight).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericLeftWidth).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericLeftY).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericLeftX).BeginInit();
         groupRightRegion.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)numericRightHeight).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericRightWidth).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericRightY).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericRightX).BeginInit();
         groupExport.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)numericQuality).BeginInit();
         groupActions.SuspendLayout();
@@ -252,221 +230,47 @@ partial class ScreenOneForm
         // 
         // groupLeftRegion
         // 
-        groupLeftRegion.Controls.Add(numericLeftHeight);
-        groupLeftRegion.Controls.Add(labelLeftHeight);
-        groupLeftRegion.Controls.Add(numericLeftWidth);
-        groupLeftRegion.Controls.Add(labelLeftWidth);
-        groupLeftRegion.Controls.Add(numericLeftY);
-        groupLeftRegion.Controls.Add(labelLeftY);
-        groupLeftRegion.Controls.Add(numericLeftX);
-        groupLeftRegion.Controls.Add(labelLeftX);
+        groupLeftRegion.Controls.Add(leftRegionMarginsEditor);
         groupLeftRegion.Location = new Point(19, 308);
         groupLeftRegion.Margin = new Padding(4, 4, 4, 4);
         groupLeftRegion.Name = "groupLeftRegion";
         groupLeftRegion.Padding = new Padding(4, 4, 4, 4);
-        groupLeftRegion.Size = new Size(591, 171);
+        groupLeftRegion.Size = new Size(591, 320);
         groupLeftRegion.TabIndex = 2;
         groupLeftRegion.TabStop = false;
-        groupLeftRegion.Text = "左区域矩形";
-        // 
-        // numericLeftHeight
-        // 
-        numericLeftHeight.Location = new Point(412, 108);
-        numericLeftHeight.Margin = new Padding(4, 4, 4, 4);
-        numericLeftHeight.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericLeftHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-        numericLeftHeight.Name = "numericLeftHeight";
-        numericLeftHeight.Size = new Size(158, 30);
-        numericLeftHeight.TabIndex = 7;
-        numericLeftHeight.ThousandsSeparator = true;
-        numericLeftHeight.Value = new decimal(new int[] { 1900, 0, 0, 0 });
-        numericLeftHeight.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelLeftHeight
-        // 
-        labelLeftHeight.AutoSize = true;
-        labelLeftHeight.Location = new Point(328, 111);
-        labelLeftHeight.Margin = new Padding(4, 0, 4, 0);
-        labelLeftHeight.Name = "labelLeftHeight";
-        labelLeftHeight.Size = new Size(46, 24);
-        labelLeftHeight.TabIndex = 6;
-        labelLeftHeight.Text = "高度";
-        // 
-        // numericLeftWidth
-        // 
-        numericLeftWidth.Location = new Point(111, 108);
-        numericLeftWidth.Margin = new Padding(4, 4, 4, 4);
-        numericLeftWidth.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericLeftWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-        numericLeftWidth.Name = "numericLeftWidth";
-        numericLeftWidth.Size = new Size(176, 30);
-        numericLeftWidth.TabIndex = 5;
-        numericLeftWidth.ThousandsSeparator = true;
-        numericLeftWidth.Value = new decimal(new int[] { 1500, 0, 0, 0 });
-        numericLeftWidth.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelLeftWidth
-        // 
-        labelLeftWidth.AutoSize = true;
-        labelLeftWidth.Location = new Point(27, 111);
-        labelLeftWidth.Margin = new Padding(4, 0, 4, 0);
-        labelLeftWidth.Name = "labelLeftWidth";
-        labelLeftWidth.Size = new Size(46, 24);
-        labelLeftWidth.TabIndex = 4;
-        labelLeftWidth.Text = "宽度";
-        // 
-        // numericLeftY
-        // 
-        numericLeftY.Location = new Point(412, 48);
-        numericLeftY.Margin = new Padding(4, 4, 4, 4);
-        numericLeftY.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericLeftY.Minimum = new decimal(new int[] { 16384, 0, 0, int.MinValue });
-        numericLeftY.Name = "numericLeftY";
-        numericLeftY.Size = new Size(158, 30);
-        numericLeftY.TabIndex = 3;
-        numericLeftY.Value = new decimal(new int[] { 50, 0, 0, 0 });
-        numericLeftY.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelLeftY
-        // 
-        labelLeftY.AutoSize = true;
-        labelLeftY.Location = new Point(328, 51);
-        labelLeftY.Margin = new Padding(4, 0, 4, 0);
-        labelLeftY.Name = "labelLeftY";
-        labelLeftY.Size = new Size(21, 24);
-        labelLeftY.TabIndex = 2;
-        labelLeftY.Text = "Y";
-        // 
-        // numericLeftX
-        // 
-        numericLeftX.Location = new Point(111, 48);
-        numericLeftX.Margin = new Padding(4, 4, 4, 4);
-        numericLeftX.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericLeftX.Minimum = new decimal(new int[] { 16384, 0, 0, int.MinValue });
-        numericLeftX.Name = "numericLeftX";
-        numericLeftX.Size = new Size(176, 30);
-        numericLeftX.TabIndex = 1;
-        numericLeftX.Value = new decimal(new int[] { 50, 0, 0, 0 });
-        numericLeftX.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelLeftX
-        // 
-        labelLeftX.AutoSize = true;
-        labelLeftX.Location = new Point(27, 51);
-        labelLeftX.Margin = new Padding(4, 0, 4, 0);
-        labelLeftX.Name = "labelLeftX";
-        labelLeftX.Size = new Size(22, 24);
-        labelLeftX.TabIndex = 0;
-        labelLeftX.Text = "X";
+        groupLeftRegion.Text = "左区域外缘四边距";
+        //
+        // leftRegionMarginsEditor
+        //
+        leftRegionMarginsEditor.CanvasSize = new Size(3200, 2000);
+        leftRegionMarginsEditor.Location = new Point(27, 38);
+        leftRegionMarginsEditor.Margin = new Padding(4);
+        leftRegionMarginsEditor.Name = "leftRegionMarginsEditor";
+        leftRegionMarginsEditor.Size = new Size(540, 256);
+        leftRegionMarginsEditor.TabIndex = 0;
+        leftRegionMarginsEditor.MarginsChanged += regionMarginsEditor_MarginsChanged;
         // 
         // groupRightRegion
         // 
-        groupRightRegion.Controls.Add(numericRightHeight);
-        groupRightRegion.Controls.Add(labelRightHeight);
-        groupRightRegion.Controls.Add(numericRightWidth);
-        groupRightRegion.Controls.Add(labelRightWidth);
-        groupRightRegion.Controls.Add(numericRightY);
-        groupRightRegion.Controls.Add(labelRightY);
-        groupRightRegion.Controls.Add(numericRightX);
-        groupRightRegion.Controls.Add(labelRightX);
+        groupRightRegion.Controls.Add(rightRegionMarginsEditor);
         groupRightRegion.Location = new Point(19, 487);
         groupRightRegion.Margin = new Padding(4, 4, 4, 4);
         groupRightRegion.Name = "groupRightRegion";
         groupRightRegion.Padding = new Padding(4, 4, 4, 4);
-        groupRightRegion.Size = new Size(591, 171);
+        groupRightRegion.Size = new Size(591, 320);
         groupRightRegion.TabIndex = 3;
         groupRightRegion.TabStop = false;
-        groupRightRegion.Text = "右区域矩形（白色矩形位置/大小）";
-        // 
-        // numericRightHeight
-        // 
-        numericRightHeight.Location = new Point(412, 108);
-        numericRightHeight.Margin = new Padding(4, 4, 4, 4);
-        numericRightHeight.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericRightHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-        numericRightHeight.Name = "numericRightHeight";
-        numericRightHeight.Size = new Size(158, 30);
-        numericRightHeight.TabIndex = 7;
-        numericRightHeight.ThousandsSeparator = true;
-        numericRightHeight.Value = new decimal(new int[] { 1900, 0, 0, 0 });
-        numericRightHeight.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelRightHeight
-        // 
-        labelRightHeight.AutoSize = true;
-        labelRightHeight.Location = new Point(328, 111);
-        labelRightHeight.Margin = new Padding(4, 0, 4, 0);
-        labelRightHeight.Name = "labelRightHeight";
-        labelRightHeight.Size = new Size(46, 24);
-        labelRightHeight.TabIndex = 6;
-        labelRightHeight.Text = "高度";
-        // 
-        // numericRightWidth
-        // 
-        numericRightWidth.Location = new Point(111, 108);
-        numericRightWidth.Margin = new Padding(4, 4, 4, 4);
-        numericRightWidth.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericRightWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-        numericRightWidth.Name = "numericRightWidth";
-        numericRightWidth.Size = new Size(176, 30);
-        numericRightWidth.TabIndex = 5;
-        numericRightWidth.ThousandsSeparator = true;
-        numericRightWidth.Value = new decimal(new int[] { 1500, 0, 0, 0 });
-        numericRightWidth.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelRightWidth
-        // 
-        labelRightWidth.AutoSize = true;
-        labelRightWidth.Location = new Point(27, 111);
-        labelRightWidth.Margin = new Padding(4, 0, 4, 0);
-        labelRightWidth.Name = "labelRightWidth";
-        labelRightWidth.Size = new Size(46, 24);
-        labelRightWidth.TabIndex = 4;
-        labelRightWidth.Text = "宽度";
-        // 
-        // numericRightY
-        // 
-        numericRightY.Location = new Point(412, 48);
-        numericRightY.Margin = new Padding(4, 4, 4, 4);
-        numericRightY.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericRightY.Minimum = new decimal(new int[] { 16384, 0, 0, int.MinValue });
-        numericRightY.Name = "numericRightY";
-        numericRightY.Size = new Size(158, 30);
-        numericRightY.TabIndex = 3;
-        numericRightY.Value = new decimal(new int[] { 50, 0, 0, 0 });
-        numericRightY.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelRightY
-        // 
-        labelRightY.AutoSize = true;
-        labelRightY.Location = new Point(328, 51);
-        labelRightY.Margin = new Padding(4, 0, 4, 0);
-        labelRightY.Name = "labelRightY";
-        labelRightY.Size = new Size(21, 24);
-        labelRightY.TabIndex = 2;
-        labelRightY.Text = "Y";
-        // 
-        // numericRightX
-        // 
-        numericRightX.Location = new Point(111, 48);
-        numericRightX.Margin = new Padding(4, 4, 4, 4);
-        numericRightX.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericRightX.Minimum = new decimal(new int[] { 16384, 0, 0, int.MinValue });
-        numericRightX.Name = "numericRightX";
-        numericRightX.Size = new Size(176, 30);
-        numericRightX.TabIndex = 1;
-        numericRightX.Value = new decimal(new int[] { 1650, 0, 0, 0 });
-        numericRightX.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelRightX
-        // 
-        labelRightX.AutoSize = true;
-        labelRightX.Location = new Point(27, 51);
-        labelRightX.Margin = new Padding(4, 0, 4, 0);
-        labelRightX.Name = "labelRightX";
-        labelRightX.Size = new Size(22, 24);
-        labelRightX.TabIndex = 0;
-        labelRightX.Text = "X";
+        groupRightRegion.Text = "右区域外缘四边距";
+        //
+        // rightRegionMarginsEditor
+        //
+        rightRegionMarginsEditor.CanvasSize = new Size(3200, 2000);
+        rightRegionMarginsEditor.Location = new Point(27, 38);
+        rightRegionMarginsEditor.Margin = new Padding(4);
+        rightRegionMarginsEditor.Name = "rightRegionMarginsEditor";
+        rightRegionMarginsEditor.Size = new Size(540, 256);
+        rightRegionMarginsEditor.TabIndex = 0;
+        rightRegionMarginsEditor.MarginsChanged += regionMarginsEditor_MarginsChanged;
         // 
         // groupExport
         // 
@@ -662,11 +466,11 @@ partial class ScreenOneForm
         // 
         // saveFileDialog
         // 
-        saveFileDialog.Title = "保存1号屏图卡";
+        saveFileDialog.Title = "保存显示器图卡";
         // 
         // folderBrowserDialog
         // 
-        folderBrowserDialog.Description = "选择1号屏三张图卡的导出目录";
+        folderBrowserDialog.Description = "选择显示器三张图卡的导出目录";
         folderBrowserDialog.UseDescriptionForTitle = true;
         // 
         // ScreenOneForm
@@ -681,7 +485,7 @@ partial class ScreenOneForm
         MinimumSize = new Size(1729, 1112);
         Name = "ScreenOneForm";
         StartPosition = FormStartPosition.CenterParent;
-        Text = "3D显示器图卡";
+        Text = "显示器";
         FormClosing += ScreenOneForm_FormClosing;
         FormClosed += ScreenOneForm_FormClosed;
         splitContainerMain.Panel1.ResumeLayout(false);
@@ -697,16 +501,8 @@ partial class ScreenOneForm
         groupCard.PerformLayout();
         groupLeftRegion.ResumeLayout(false);
         groupLeftRegion.PerformLayout();
-        ((System.ComponentModel.ISupportInitialize)numericLeftHeight).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericLeftWidth).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericLeftY).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericLeftX).EndInit();
         groupRightRegion.ResumeLayout(false);
         groupRightRegion.PerformLayout();
-        ((System.ComponentModel.ISupportInitialize)numericRightHeight).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericRightWidth).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericRightY).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericRightX).EndInit();
         groupExport.ResumeLayout(false);
         groupExport.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)numericQuality).EndInit();
@@ -734,23 +530,9 @@ partial class ScreenOneForm
     private ComboBox comboCardKind;
     private Label labelCardKind;
     private GroupBox groupLeftRegion;
-    private NumericUpDown numericLeftHeight;
-    private Label labelLeftHeight;
-    private NumericUpDown numericLeftWidth;
-    private Label labelLeftWidth;
-    private NumericUpDown numericLeftY;
-    private Label labelLeftY;
-    private NumericUpDown numericLeftX;
-    private Label labelLeftX;
+    private RegionMarginsEditor leftRegionMarginsEditor;
     private GroupBox groupRightRegion;
-    private NumericUpDown numericRightHeight;
-    private Label labelRightHeight;
-    private NumericUpDown numericRightWidth;
-    private Label labelRightWidth;
-    private NumericUpDown numericRightY;
-    private Label labelRightY;
-    private NumericUpDown numericRightX;
-    private Label labelRightX;
+    private RegionMarginsEditor rightRegionMarginsEditor;
     private GroupBox groupExport;
     private Label labelExportHelp;
     private NumericUpDown numericQuality;

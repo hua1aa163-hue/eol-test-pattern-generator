@@ -29,10 +29,27 @@ public partial class MainForm : Form
     private bool _isRendering;
     private bool _userInterfaceInitialized;
     private int _activeExports;
+    private string _lastImportedImageDirectory = string.Empty;
+    private string _lastExportDirectory = string.Empty;
 
     public MainForm()
     {
         InitializeComponent();
+    }
+
+    /// <summary>统一工作台在两阶段关闭前只读检查后台导出状态。</summary>
+    public bool IsExporting => _activeExports > 0;
+
+    /// <summary>
+    /// 作为统一工作台中的基础图卡页面时，隐藏旧的链式子窗口入口。
+    /// 这些功能已由工作台左侧导航直接提供。
+    /// </summary>
+    public void ConfigureAsWorkspacePage()
+    {
+        buttonPhaseTool.Visible = false;
+        buttonExportScreen1.Visible = false;
+        groupPattern.Height = 164;
+        Text = "基础图卡";
     }
 
     protected override void OnLoad(EventArgs e)
@@ -56,13 +73,15 @@ public partial class MainForm : Form
     {
         toolTip.SetToolTip(numericCanvasWidth, "最终导出图片的像素宽度；界面上限 8192，画布总像素上限 4000 万。");
         toolTip.SetToolTip(numericCanvasHeight, "最终导出图片的像素高度；界面上限 8192，画布总像素上限 4000 万。");
-        toolTip.SetToolTip(numericPatternX, "矩形图为左上角 X；点阵图为第一个圆心 X。允许负数。");
-        toolTip.SetToolTip(numericPatternY, "矩形图为左上角 Y；点阵图为第一个圆心 Y。允许负数。");
-        toolTip.SetToolTip(numericPatternWidth, "矩形图为区域宽度；点阵图为第一个到最后一个圆心的 X 距离。");
-        toolTip.SetToolTip(numericPatternHeight, "矩形图为区域高度；点阵图为第一个到最后一个圆心的 Y 距离。");
+        toolTip.SetToolTip(regionMarginsEditor, "统一按图案真实最外缘到画布四边的距离定义区域。");
+        toolTip.SetToolTip(numericPatternX, "点阵左上第一个圆点的圆心 X；与外缘四边距双向同步。");
+        toolTip.SetToolTip(numericPatternY, "点阵左上第一个圆点的圆心 Y；与外缘四边距双向同步。");
+        toolTip.SetToolTip(numericPatternWidth, "点阵第一个到最后一个圆心的水平距离。");
+        toolTip.SetToolTip(numericPatternHeight, "点阵第一个到最后一个圆心的垂直距离。");
         toolTip.SetToolTip(numericDotRadius, "半径 4 对应 9 像素直径；半径 0 对应单像素点。");
-        toolTip.SetToolTip(buttonBatchExport, "生成主窗口的 10 张图卡；RGB 相移 8 张请在独立工具中导出。");
-        toolTip.SetToolTip(buttonExportScreen1, "打开1号屏独立工具，可调整画布分辨率及左右矩形的位置和大小。");
+        toolTip.SetToolTip(buttonBatchExport, "生成 10 张基础图卡；串扰像素排列与显示器图卡请使用对应功能页导出。");
+        toolTip.SetToolTip(buttonPhaseTool, "打开串扰像素排列，可配置周期内每个位置点亮的 R/G/B 通道。");
+        toolTip.SetToolTip(buttonExportScreen1, "打开显示器图卡编辑页，可调整画布及左右区域的外缘四边距。");
 
         ResetProfilesToDefaults();
         LoadUserPreferences();
@@ -86,7 +105,7 @@ public partial class MainForm : Form
         }
     }
 
-    /// <summary>加载上次关闭程序时保存的全部主窗口输入。</summary>
+    /// <summary>加载上次关闭程序时保存的全部基础图卡页面输入。</summary>
     private void LoadUserPreferences()
     {
         MainPreferences preferences = UserSettingsStore.Shared.Load().Main;
@@ -98,6 +117,7 @@ public partial class MainForm : Form
             }
         }
 
+        bool previousUpdatingState = _updatingControls;
         _updatingControls = true;
         try
         {
@@ -112,8 +132,37 @@ public partial class MainForm : Form
         }
         finally
         {
-            _updatingControls = false;
+            _updatingControls = previousUpdatingState;
         }
+
+        string importedImagePath = _patternProfiles.TryGetValue(
+            PatternType.ImportedImage,
+            out PatternSettings? importedProfile)
+            ? importedProfile.SourceImagePath
+            : string.Empty;
+        _lastImportedImageDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            preferences.LastImportedImageDirectory,
+            importedImagePath);
+        _lastExportDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            preferences.LastExportDirectory);
+        ApplyDialogInitialDirectories();
+    }
+
+    /// <summary>只把仍存在的绝对目录交给文件对话框；失效路径回退到系统默认位置。</summary>
+    private void ApplyDialogInitialDirectories()
+    {
+        string importedImagePath = _patternProfiles.TryGetValue(
+            PatternType.ImportedImage,
+            out PatternSettings? importedProfile)
+            ? importedProfile.SourceImagePath
+            : string.Empty;
+        _lastImportedImageDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            _lastImportedImageDirectory,
+            importedImagePath);
+        _lastExportDirectory = DialogDirectoryResolver.ResolveExistingDirectory(_lastExportDirectory);
+        openImageDialog.InitialDirectory = _lastImportedImageDirectory;
+        saveFileDialog.InitialDirectory = _lastExportDirectory;
+        folderBrowserDialog.InitialDirectory = _lastExportDirectory;
     }
 
     private void comboPattern_SelectedIndexChanged(object? sender, EventArgs e)
@@ -141,11 +190,149 @@ public partial class MainForm : Form
             return;
         }
 
+        bool canvasChanged = ReferenceEquals(sender, numericCanvasWidth) ||
+            ReferenceEquals(sender, numericCanvasHeight);
+        if (canvasChanged)
+        {
+            regionMarginsEditor.CanvasSize = new Size(
+                (int)numericCanvasWidth.Value,
+                (int)numericCanvasHeight.Value);
+        }
+
+        bool dotCenterGeometryChanged = ReferenceEquals(sender, numericPatternX) ||
+            ReferenceEquals(sender, numericPatternY) ||
+            ReferenceEquals(sender, numericPatternWidth) ||
+            ReferenceEquals(sender, numericPatternHeight) ||
+            ReferenceEquals(sender, numericDotRadius);
+        bool dotGridCountChanged = ReferenceEquals(sender, numericRows) ||
+            ReferenceEquals(sender, numericColumns);
+        if (_activePatternType is PatternType.NinePointGrid or PatternType.DistortionGrid)
+        {
+            if (dotCenterGeometryChanged)
+            {
+                NormalizeSingleAxisDotCenterInputs();
+                UpdateMarginsFromDotCenterControls();
+            }
+            else if (canvasChanged || dotGridCountChanged)
+            {
+                SynchronizeDotGeometryFromMargins();
+            }
+        }
+
         borderOverlayEditor.CanvasSize = new Size(
             (int)numericCanvasWidth.Value,
             (int)numericCanvasHeight.Value);
         StoreControlsInProfiles(_activePatternType);
         SchedulePreview();
+    }
+
+    private void regionMarginsEditor_MarginsChanged(object? sender, EventArgs e)
+    {
+        if (_updatingControls)
+        {
+            return;
+        }
+
+        if (_activePatternType is PatternType.NinePointGrid or PatternType.DistortionGrid)
+        {
+            SynchronizeDotGeometryFromMargins();
+        }
+
+        StoreControlsInProfiles(_activePatternType);
+        SchedulePreview();
+    }
+
+    private PatternSettings CreateSettingsForDotSynchronization()
+    {
+        PatternSettings settings = _patternProfiles[_activePatternType].Clone();
+        settings.PatternType = _activePatternType;
+        settings.CanvasWidth = (int)numericCanvasWidth.Value;
+        settings.CanvasHeight = (int)numericCanvasHeight.Value;
+        settings.DotRadius = (int)numericDotRadius.Value;
+        settings.Rows = (int)numericRows.Value;
+        settings.Columns = (int)numericColumns.Value;
+        settings.SetMargins(regionMarginsEditor.GetMargins());
+        return settings;
+    }
+
+    /// <summary>
+    /// 单列/单行时首末圆心是同一点，对应跨度必须回到 0。
+    /// 这里抑制 ValueChanged 递归，随后由统一换算保留首圆心。
+    /// </summary>
+    private void NormalizeSingleAxisDotCenterInputs()
+    {
+        bool previousUpdatingState = _updatingControls;
+        _updatingControls = true;
+        try
+        {
+            if (numericColumns.Value == 1)
+            {
+                numericPatternWidth.Value = 0;
+            }
+
+            if (numericRows.Value == 1)
+            {
+                numericPatternHeight.Value = 0;
+            }
+        }
+        finally
+        {
+            _updatingControls = previousUpdatingState;
+        }
+    }
+
+    /// <summary>
+    /// 外缘边距、画布或行列数改变后同步圆心定义。
+    /// 若某轴只有一个圆心，保留左/上外缘并反算末端边距，使四边距仍是真实 bbox。
+    /// </summary>
+    private void SynchronizeDotGeometryFromMargins()
+    {
+        PatternSettings settings = CreateSettingsForDotSynchronization();
+        if (settings.NormalizeSingleAxisDotSpans())
+        {
+            regionMarginsEditor.SetMargins(settings.GetMargins());
+        }
+
+        SynchronizeDotCenterControls(settings);
+    }
+
+    private void UpdateMarginsFromDotCenterControls()
+    {
+        var settings = new PatternSettings
+        {
+            PatternType = _activePatternType,
+            CanvasWidth = (int)numericCanvasWidth.Value,
+            CanvasHeight = (int)numericCanvasHeight.Value,
+            DotRadius = (int)numericDotRadius.Value
+        };
+        settings.SetLegacyBounds(
+            (int)numericPatternX.Value,
+            (int)numericPatternY.Value,
+            (int)numericPatternWidth.Value,
+            (int)numericPatternHeight.Value);
+        regionMarginsEditor.SetMargins(settings.GetMargins());
+    }
+
+    private void SynchronizeDotCenterControls(PatternSettings settings)
+    {
+        if (!settings.IsDotGrid)
+        {
+            return;
+        }
+
+        bool previousUpdatingState = _updatingControls;
+        _updatingControls = true;
+        try
+        {
+            SetNumericValue(numericPatternX, settings.PatternX);
+            SetNumericValue(numericPatternY, settings.PatternY);
+            SetNumericValue(numericPatternWidth, settings.PatternWidth);
+            SetNumericValue(numericPatternHeight, settings.PatternHeight);
+        }
+        finally
+        {
+            _updatingControls = previousUpdatingState;
+        }
     }
 
     private void LoadActiveProfile()
@@ -175,17 +362,18 @@ public partial class MainForm : Form
                      })
             {
                 PatternSettings profile = _patternProfiles[rectangleType];
-                profile.PatternX = settings.PatternX;
-                profile.PatternY = settings.PatternY;
-                profile.PatternWidth = settings.PatternWidth;
-                profile.PatternHeight = settings.PatternHeight;
+                profile.SetMargins(settings.GetMargins());
             }
         }
 
         if (type is PatternType.NinePointGrid or PatternType.DistortionGrid)
         {
-            _patternProfiles[PatternType.NinePointGrid].DotRadius = settings.DotRadius;
-            _patternProfiles[PatternType.DistortionGrid].DotRadius = settings.DotRadius;
+            // 两种点阵共享半径，但各自保留独立的首圆心和圆心跨度。
+            // 不能只改 DotRadius，否则未激活点阵的圆心会随半径漂移。
+            _patternProfiles[PatternType.NinePointGrid]
+                .SetDotRadiusPreservingCenterGeometry(settings.DotRadius);
+            _patternProfiles[PatternType.DistortionGrid]
+                .SetDotRadiusPreservingCenterGeometry(settings.DotRadius);
         }
 
         if (type is PatternType.Border or PatternType.CorrectionCross)
@@ -205,15 +393,13 @@ public partial class MainForm : Form
         settings.PatternType = type;
         settings.CanvasWidth = (int)numericCanvasWidth.Value;
         settings.CanvasHeight = (int)numericCanvasHeight.Value;
-        settings.PatternX = (int)numericPatternX.Value;
-        settings.PatternY = (int)numericPatternY.Value;
-        settings.PatternWidth = (int)numericPatternWidth.Value;
-        settings.PatternHeight = (int)numericPatternHeight.Value;
         settings.Phase = (int)numericPhase.Value;
         settings.DotRadius = (int)numericDotRadius.Value;
         settings.Rows = (int)numericRows.Value;
         settings.Columns = (int)numericColumns.Value;
         settings.LineWidth = (int)numericLineWidth.Value;
+        settings.SetMargins(regionMarginsEditor.GetMargins());
+        settings.NormalizeFullCanvasMargins();
         settings.BorderOverlay = borderOverlayEditor.GetSettings();
         return settings;
     }
@@ -225,15 +411,14 @@ public partial class MainForm : Form
         {
             SetNumericValue(numericCanvasWidth, settings.CanvasWidth);
             SetNumericValue(numericCanvasHeight, settings.CanvasHeight);
-            SetNumericValue(numericPatternX, settings.PatternX);
-            SetNumericValue(numericPatternY, settings.PatternY);
-            SetNumericValue(numericPatternWidth, settings.PatternWidth);
-            SetNumericValue(numericPatternHeight, settings.PatternHeight);
             SetNumericValue(numericPhase, settings.Phase);
             SetNumericValue(numericDotRadius, settings.DotRadius);
             SetNumericValue(numericRows, settings.Rows);
             SetNumericValue(numericColumns, settings.Columns);
             SetNumericValue(numericLineWidth, settings.LineWidth);
+            regionMarginsEditor.CanvasSize = new Size(settings.CanvasWidth, settings.CanvasHeight);
+            regionMarginsEditor.SetMargins(settings.GetMargins());
+            SynchronizeDotCenterControls(settings);
             borderOverlayEditor.CanvasSize = new Size(settings.CanvasWidth, settings.CanvasHeight);
             borderOverlayEditor.SetSettings(settings.BorderOverlay);
         }
@@ -263,11 +448,19 @@ public partial class MainForm : Form
         numericPhase.Enabled = false;
         labelPhase.Enabled = false;
 
-        numericPatternX.Enabled = !isSolid && !isImported;
-        numericPatternY.Enabled = !isSolid && !isImported;
-        numericPatternWidth.Enabled = !isSolid && !isImported;
-        numericPatternHeight.Enabled = !isSolid && !isImported;
-        buttonCenter.Enabled = !isSolid && !isImported;
+        regionMarginsEditor.InputsEnabled = !isSolid && !isImported;
+        bool showCenterGeometry = isGrid;
+        numericPatternX.Visible = showCenterGeometry;
+        numericPatternY.Visible = showCenterGeometry;
+        numericPatternWidth.Visible = showCenterGeometry;
+        numericPatternHeight.Visible = showCenterGeometry;
+        labelPatternX.Visible = showCenterGeometry;
+        labelPatternY.Visible = showCenterGeometry;
+        labelPatternWidth.Visible = showCenterGeometry;
+        labelPatternHeight.Visible = showCenterGeometry;
+        labelPlacementHelp.Visible = showCenterGeometry;
+        buttonCenter.Visible = false;
+        groupPlacement.Height = showCenterGeometry ? 500 : 330;
         buttonBrowseSourceImage.Visible = isImported;
         labelPatternHelp.Width = isImported ? 190 : 331;
 
@@ -283,20 +476,23 @@ public partial class MainForm : Form
         numericQuality.Enabled = usesQuality;
         labelQuality.Enabled = usesQuality;
 
-        labelPatternX.Text = isGrid ? "首点 X" : "左上 X";
-        labelPatternY.Text = isGrid ? "首点 Y" : "左上 Y";
-        labelPatternWidth.Text = isGrid ? "X 跨度" : "宽度";
-        labelPatternHeight.Text = isGrid ? "Y 跨度" : "高度";
+        labelPatternX.Text = "首圆心 X";
+        labelPatternY.Text = "首圆心 Y";
+        labelPatternWidth.Text = "圆心 X 跨度";
+        labelPatternHeight.Text = "圆心 Y 跨度";
         labelPatternHelp.Text = isGrid
-            ? "点阵 X/Y 是左上第一个圆心；跨度是首末圆心距离，圆点半径单独设置。"
+            ? "点阵可同时按圆心与真实外缘校准；两组参数会自动双向同步。"
             : isImported
                 ? string.IsNullOrWhiteSpace(_patternProfiles[type].SourceImagePath)
                     ? "请选择外部图片；图片会按画布尺寸最近邻缩放，再应用可调白框叠加层。"
                     : $"底图：{Path.GetFileName(_patternProfiles[type].SourceImagePath)}"
             : isSolid
                 ? "纯色图整张画布仅使用 0/255；保存时只允许 PNG、BMP 或 TIFF。"
-                : "矩形类图案使用左上角 X/Y 和区域宽高；白框叠加层可覆盖任意底图。";
+                : "所有有限区域均使用图案真实最外缘到画布四边的距离。";
 
+        regionMarginsEditor.CanvasSize = new Size(
+            (int)numericCanvasWidth.Value,
+            (int)numericCanvasHeight.Value);
         borderOverlayEditor.CanvasSize = new Size(
             (int)numericCanvasWidth.Value,
             (int)numericCanvasHeight.Value);
@@ -331,20 +527,7 @@ public partial class MainForm : Form
 
     private void buttonCenter_Click(object? sender, EventArgs e)
     {
-        PatternSettings settings = ReadSettings(_activePatternType);
-        PatternLayout.Center(settings);
-
-        _updatingControls = true;
-        try
-        {
-            SetNumericValue(numericPatternX, settings.PatternX);
-            SetNumericValue(numericPatternY, settings.PatternY);
-        }
-        finally
-        {
-            _updatingControls = false;
-        }
-
+        regionMarginsEditor.CenterPreservingSize();
         StoreControlsInProfiles(_activePatternType);
         UpdatePreview();
     }
@@ -368,7 +551,9 @@ public partial class MainForm : Form
             imagePreviewControl.SetImage(bitmap, preserveView: true);
 
             labelPreviewInfo.Text = $"预览：{settings.CanvasWidth:N0} × {settings.CanvasHeight:N0} | {comboPattern.Text}";
-            statusLabel.Text = $"就绪 | 区域/跨度 {settings.PatternWidth:N0} × {settings.PatternHeight:N0} | X={settings.PatternX}, Y={settings.PatternY}";
+            statusLabel.Text = settings.IsDotGrid
+                ? $"就绪 | 外包 {settings.CalculatedOuterWidth:N0} × {settings.CalculatedOuterHeight:N0} | 圆心跨度 {settings.CalculatedCenterSpanWidth:N0} × {settings.CalculatedCenterSpanHeight:N0}"
+                : $"就绪 | 图案 {settings.CalculatedOuterWidth:N0} × {settings.CalculatedOuterHeight:N0}";
         }
         catch (Exception exception)
         {
@@ -396,11 +581,16 @@ public partial class MainForm : Form
         saveFileDialog.Filter = ImageFileWriter.GetDialogFilter(exportOptions.Format);
         saveFileDialog.DefaultExt = extension.TrimStart('.');
         saveFileDialog.FileName = PatternFileNames.Get(settings, exportOptions.Format);
+        ApplyDialogInitialDirectories();
 
         if (saveFileDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
         }
+
+        _lastExportDirectory = DialogDirectoryResolver.RememberFileDirectory(
+            saveFileDialog.FileName,
+            _lastExportDirectory);
 
         string targetPath = ImageFileWriter.NormalizePath(saveFileDialog.FileName, exportOptions.Format);
         bool targetWasChanged = !string.Equals(
@@ -442,10 +632,15 @@ public partial class MainForm : Form
             return;
         }
 
+        ApplyDialogInitialDirectories();
         if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
         }
+
+        _lastExportDirectory = DialogDirectoryResolver.RememberDirectory(
+            folderBrowserDialog.SelectedPath,
+            _lastExportDirectory);
 
         StoreControlsInProfiles(_activePatternType);
         PatternSettings current = _patternProfiles[_activePatternType].Clone();
@@ -455,7 +650,7 @@ public partial class MainForm : Form
 
         BeginExport();
         UseWaitCursor = true;
-        statusLabel.Text = "正在批量导出主窗口 10 张图卡...";
+        statusLabel.Text = "正在批量导出 10 张基础图卡...";
 
         try
         {
@@ -516,10 +711,15 @@ public partial class MainForm : Form
 
     private void buttonBrowseSourceImage_Click(object? sender, EventArgs e)
     {
+        ApplyDialogInitialDirectories();
         if (openImageDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
         }
+
+        _lastImportedImageDirectory = DialogDirectoryResolver.RememberFileDirectory(
+            openImageDialog.FileName,
+            _lastImportedImageDirectory);
 
         PatternSettings settings = ReadSettings(PatternType.ImportedImage);
         settings.SourceImagePath = openImageDialog.FileName;
@@ -607,6 +807,8 @@ public partial class MainForm : Form
             SelectedPatternType = _activePatternType,
             OutputFormat = ReadExportOptions().Format,
             Quality = (int)numericQuality.Value,
+            LastImportedImageDirectory = _lastImportedImageDirectory,
+            LastExportDirectory = _lastExportDirectory,
             PatternProfiles = _patternProfiles.ToDictionary(
                 pair => pair.Key,
                 pair => pair.Value.Clone()),

@@ -26,6 +26,13 @@
     不依赖本机 .csproj.user，Visual Studio 才能稳定取得设计器所需的项目 hierarchy。
   -->
   <ItemGroup>
+    <Compile Update="WorkspaceForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="WorkspaceForm.Designer.cs">
+      <DependentUpon>WorkspaceForm.cs</DependentUpon>
+    </Compile>
+
     <Compile Update="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -59,6 +66,27 @@
     </Compile>
     <Compile Update="Controls\BorderOverlayEditor.Designer.cs">
       <DependentUpon>BorderOverlayEditor.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="Controls\CrosstalkCycleEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Controls\CrosstalkCycleEditor.Designer.cs">
+      <DependentUpon>CrosstalkCycleEditor.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="Controls\RegionMarginsEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Controls\RegionMarginsEditor.Designer.cs">
+      <DependentUpon>RegionMarginsEditor.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="Controls\StillVideoPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Controls\StillVideoPage.Designer.cs">
+      <DependentUpon>StillVideoPage.cs</DependentUpon>
     </Compile>
 
     <Compile Update="Controls\ImagePreviewControl.cs">

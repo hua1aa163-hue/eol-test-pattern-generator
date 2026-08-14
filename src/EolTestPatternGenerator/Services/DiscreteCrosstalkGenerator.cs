@@ -5,7 +5,7 @@ using OpenCvSharp;
 namespace EolTestPatternGenerator.Services;
 
 /// <summary>
-/// 生成“Lighttool Source Creator”风格的离散 RGB 子像素串扰图。
+/// 生成“Lighttool Source Creator”风格的离散 RGB 子像素光源图。
 /// </summary>
 public static class DiscreteCrosstalkGenerator
 {
@@ -194,7 +194,7 @@ public static class DiscreteCrosstalkGenerator
 
         if (!Enum.IsDefined(settings.ResultType))
         {
-            throw new ArgumentOutOfRangeException(nameof(settings), "未知的离散串扰结果类型。");
+            throw new ArgumentOutOfRangeException(nameof(settings), "未知的离散光源结果类型。");
         }
     }
 

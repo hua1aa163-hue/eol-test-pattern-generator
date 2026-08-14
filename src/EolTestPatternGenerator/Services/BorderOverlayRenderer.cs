@@ -17,27 +17,28 @@ public static class BorderOverlayRenderer
             return;
         }
 
-        if (settings.Width < 1 || settings.Height < 1 || settings.LineWidth < 1)
+        if (settings.LineWidth < 1)
         {
-            throw new ArgumentOutOfRangeException(nameof(settings), "白框宽、高和线宽必须大于 0。");
+            throw new ArgumentOutOfRangeException(nameof(settings), "白框线宽必须大于 0。");
         }
 
-        int thickness = Math.Min(settings.LineWidth, Math.Min(settings.Width, settings.Height));
-        if ((2 * thickness) >= settings.Width || (2 * thickness) >= settings.Height)
+        PixelRegion region = settings.GetRegion(image.Cols, image.Rows);
+        int thickness = Math.Min(settings.LineWidth, Math.Min(region.Width, region.Height));
+        if ((2L * thickness) >= region.Width || (2L * thickness) >= region.Height)
         {
-            FillClipped(image, settings.X, settings.Y, settings.Width, settings.Height);
+            FillClipped(image, region.X, region.Y, region.Width, region.Height);
             return;
         }
 
-        FillClipped(image, settings.X, settings.Y, settings.Width, thickness);
-        FillClipped(image, settings.X, settings.Y + settings.Height - thickness, settings.Width, thickness);
-        FillClipped(image, settings.X, settings.Y + thickness, thickness, settings.Height - (2 * thickness));
+        FillClipped(image, region.X, region.Y, region.Width, thickness);
+        FillClipped(image, region.X, CheckedAdd(region.Height, region.Y, -thickness), region.Width, thickness);
+        FillClipped(image, region.X, CheckedAdd(region.Y, thickness), thickness, region.Height - (2 * thickness));
         FillClipped(
             image,
-            settings.X + settings.Width - thickness,
-            settings.Y + thickness,
+            CheckedAdd(region.Width, region.X, -thickness),
+            CheckedAdd(region.Y, thickness),
             thickness,
-            settings.Height - (2 * thickness));
+            region.Height - (2 * thickness));
     }
 
     private static void FillClipped(Mat image, int x, int y, int width, int height)
@@ -54,5 +55,16 @@ public static class BorderOverlayRenderer
         }
 
         Cv2.Rectangle(image, new Rect(left, top, right - left, bottom - top), White, -1, LineTypes.Link8);
+    }
+
+    private static int CheckedAdd(int first, int second, int third = 0)
+    {
+        long result = (long)first + second + third;
+        if (result is < int.MinValue or > int.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(nameof(first), "白框绘制坐标超出支持范围。");
+        }
+
+        return (int)result;
     }
 }

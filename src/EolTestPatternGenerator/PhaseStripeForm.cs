@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace EolTestPatternGenerator;
 
 /// <summary>
-/// RGB 八步二值相移条纹的独立编辑和导出窗口。
+/// 可配置周期与逐像素 RGB 通道的“串扰像素排列”编辑和导出窗口。
 /// </summary>
 public partial class PhaseStripeForm : Form
 {
@@ -13,10 +13,24 @@ public partial class PhaseStripeForm : Form
     private bool _isRendering;
     private bool _isExporting;
     private bool _userInterfaceInitialized;
+    private string _lastExportDirectory = string.Empty;
 
     public PhaseStripeForm()
     {
         InitializeComponent();
+    }
+
+    /// <summary>统一工作台在两阶段关闭前只读检查后台导出状态。</summary>
+    public bool IsExporting => _isExporting;
+
+    /// <summary>
+    /// 统一工作台已经提供非整数功能的直接入口，因此嵌入时移除旧跳转按钮。
+    /// </summary>
+    public void ConfigureAsWorkspacePage()
+    {
+        buttonNonIntegerFusion.Visible = false;
+        groupActions.Height = 176;
+        Text = "串扰像素排列";
     }
 
     protected override void OnLoad(EventArgs e)
@@ -42,12 +56,6 @@ public partial class PhaseStripeForm : Form
         try
         {
             WriteSettings(preferences.Settings);
-            comboPixelOrder.SelectedItem = preferences.Settings.PixelOrder.ToString();
-            if (comboPixelOrder.SelectedIndex < 0)
-            {
-                comboPixelOrder.SelectedIndex = 0;
-            }
-
             comboOutputFormat.SelectedIndex = Enum.IsDefined(preferences.OutputFormat)
                 ? (int)preferences.OutputFormat
                 : (int)ImageFormatKind.Png;
@@ -61,14 +69,25 @@ public partial class PhaseStripeForm : Form
             _updatingControls = false;
         }
 
+        _lastExportDirectory = DialogDirectoryResolver.ResolveExistingDirectory(
+            preferences.LastExportDirectory);
+        ApplyExportDialogInitialDirectory();
+
         toolTip.SetToolTip(numericCanvasWidth, "最终导出图像的像素宽度。");
         toolTip.SetToolTip(numericCanvasHeight, "最终导出图像的像素高度。");
-        toolTip.SetToolTip(comboPixelOrder, "选择一个八像素周期内三个颜色通道的排列次序。");
-        toolTip.SetToolTip(buttonBatchExport, "使用当前设置依次生成相位 1 到 8，文件名为 1 到 8。");
+        toolTip.SetToolTip(cycleEditor, "设置周期像素数，并为每个周期位置选择点亮的 R/G/B 通道。");
+        toolTip.SetToolTip(buttonBatchExport, "使用当前周期依次生成全部相位，文件名为相位序号。");
         toolTip.SetToolTip(previewControl, "鼠标滚轮缩放；按住鼠标左键拖动图像。");
 
         UpdateControlAvailability();
         UpdatePreview(resetView: true);
+    }
+
+    private void ApplyExportDialogInitialDirectory()
+    {
+        _lastExportDirectory = DialogDirectoryResolver.ResolveExistingDirectory(_lastExportDirectory);
+        saveFileDialog.InitialDirectory = _lastExportDirectory;
+        folderBrowserDialog.InitialDirectory = _lastExportDirectory;
     }
 
     /// <summary>将保存的相移参数安全回写到设计器输入控件。</summary>
@@ -77,10 +96,10 @@ public partial class PhaseStripeForm : Form
         ArgumentNullException.ThrowIfNull(settings);
         SetNumericValue(numericCanvasWidth, settings.CanvasWidth);
         SetNumericValue(numericCanvasHeight, settings.CanvasHeight);
-        SetNumericValue(numericPatternX, settings.PatternX);
-        SetNumericValue(numericPatternY, settings.PatternY);
-        SetNumericValue(numericPatternWidth, settings.PatternWidth);
-        SetNumericValue(numericPatternHeight, settings.PatternHeight);
+        regionMarginsEditor.CanvasSize = new Size(settings.CanvasWidth, settings.CanvasHeight);
+        regionMarginsEditor.SetMargins(settings.GetMargins());
+        cycleEditor.SetCycle(CrosstalkPixelCyclePresets.Resolve(settings));
+        numericPhase.Maximum = Math.Max(1, cycleEditor.PeriodLength);
         SetNumericValue(numericPhase, settings.Phase);
         borderOverlayEditor.SetSettings(settings.BorderOverlay ?? new BorderOverlaySettings());
     }
@@ -100,8 +119,14 @@ public partial class PhaseStripeForm : Form
         SchedulePreview();
     }
 
-    private void comboPixelOrder_SelectedIndexChanged(object? sender, EventArgs e)
+    private void cycleEditor_SettingsChanged(object? sender, EventArgs e)
     {
+        numericPhase.Maximum = Math.Max(1, cycleEditor.PeriodLength);
+        if (numericPhase.Value > numericPhase.Maximum)
+        {
+            numericPhase.Value = numericPhase.Maximum;
+        }
+
         if (!_updatingControls)
         {
             SchedulePreview();
@@ -126,6 +151,9 @@ public partial class PhaseStripeForm : Form
         borderOverlayEditor.CanvasSize = new Size(
             (int)numericCanvasWidth.Value,
             (int)numericCanvasHeight.Value);
+        regionMarginsEditor.CanvasSize = new Size(
+            (int)numericCanvasWidth.Value,
+            (int)numericCanvasHeight.Value);
     }
 
     private void UpdateControlAvailability()
@@ -145,9 +173,6 @@ public partial class PhaseStripeForm : Form
             ? (ImageFormatKind)comboOutputFormat.SelectedIndex
             : ImageFormatKind.Png;
 
-    private string SelectedPixelOrder =>
-        comboPixelOrder.SelectedItem?.ToString() ?? "RGB";
-
     private PatternSettings ReadSettings(int? phase = null)
     {
         var settings = new PatternSettings
@@ -155,32 +180,19 @@ public partial class PhaseStripeForm : Form
             PatternType = PatternType.PhaseStripes,
             CanvasWidth = (int)numericCanvasWidth.Value,
             CanvasHeight = (int)numericCanvasHeight.Value,
-            PatternX = (int)numericPatternX.Value,
-            PatternY = (int)numericPatternY.Value,
-            PatternWidth = (int)numericPatternWidth.Value,
-            PatternHeight = (int)numericPatternHeight.Value,
             Phase = phase ?? (int)numericPhase.Value,
+            PixelCycle = cycleEditor.GetCycle(),
             BorderOverlay = borderOverlayEditor.GetSettings()
         };
+        settings.SetMargins(regionMarginsEditor.GetMargins());
 
-        SetPixelOrder(settings, SelectedPixelOrder);
-        return settings;
-    }
-
-    private static void SetPixelOrder(PatternSettings settings, string order)
-    {
-        // PixelOrder 的枚举由核心模型所有。这里按枚举成员名称赋值，使窗口不依赖
-        // 枚举的具体类型名，同时仍能在模型扩展时保持二进制兼容。
-        var property = typeof(PatternSettings).GetProperty(nameof(PatternSettings.PixelOrder))
-            ?? throw new InvalidOperationException("PatternSettings 缺少 PixelOrder 属性。");
-
-        if (!property.PropertyType.IsEnum)
+        // 同时写入可识别的旧预设枚举，使较旧版本读取新配置时仍有合理回退。
+        if (CrosstalkPixelCyclePresets.TryGetLegacyOrder(settings.PixelCycle, out RgbPixelOrder legacyOrder))
         {
-            throw new InvalidOperationException("PatternSettings.PixelOrder 必须是枚举类型。");
+            settings.PixelOrder = legacyOrder;
         }
 
-        object value = Enum.Parse(property.PropertyType, order, ignoreCase: true);
-        property.SetValue(settings, value);
+        return settings;
     }
 
     private ImageExportOptions ReadExportOptions()
@@ -209,25 +221,12 @@ public partial class PhaseStripeForm : Form
         UpdatePreview(resetView: false);
     }
 
-    private void buttonCenter_Click(object? sender, EventArgs e)
+    private void regionMarginsEditor_MarginsChanged(object? sender, EventArgs e)
     {
-        int canvasWidth = (int)numericCanvasWidth.Value;
-        int canvasHeight = (int)numericCanvasHeight.Value;
-        int patternWidth = (int)numericPatternWidth.Value;
-        int patternHeight = (int)numericPatternHeight.Value;
-
-        _updatingControls = true;
-        try
+        if (!_updatingControls)
         {
-            SetNumericValue(numericPatternX, (int)Math.Floor((canvasWidth - patternWidth) / 2.0));
-            SetNumericValue(numericPatternY, (int)Math.Floor((canvasHeight - patternHeight) / 2.0));
+            SchedulePreview();
         }
-        finally
-        {
-            _updatingControls = false;
-        }
-
-        UpdatePreview(resetView: false);
     }
 
     private static void SetNumericValue(NumericUpDown control, int value)
@@ -254,9 +253,9 @@ public partial class PhaseStripeForm : Form
             previewControl.SetImage(bitmap, preserveView: !resetView);
 
             labelPreviewInfo.Text =
-                $"预览：{settings.CanvasWidth:N0} × {settings.CanvasHeight:N0} | 相位 {settings.Phase} | {SelectedPixelOrder}";
+                $"预览：{settings.CanvasWidth:N0} × {settings.CanvasHeight:N0} | 相位 {settings.Phase}/{cycleEditor.PeriodLength}";
             statusLabel.Text =
-                $"就绪 | 区域 {settings.PatternWidth:N0} × {settings.PatternHeight:N0} | X={settings.PatternX}, Y={settings.PatternY}";
+                $"就绪 | 周期 {cycleEditor.PeriodLength} 像素 | 图案 {settings.CalculatedOuterWidth:N0} × {settings.CalculatedOuterHeight:N0}";
         }
         catch (Exception exception)
         {
@@ -278,7 +277,7 @@ public partial class PhaseStripeForm : Form
 
         DialogResult result = MessageBox.Show(
             this,
-            "RGB 相移图卡要求颜色通道只含 0 和 255。JPEG/WebP 的当前编码方式可能改变像素值。\n\n是否切换为无损 PNG 后继续？",
+            "串扰像素排列图要求颜色通道只含 0 和 255。JPEG/WebP 的当前编码方式可能改变像素值。\n\n是否切换为无损 PNG 后继续？",
             "请选择无损格式",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning,
@@ -307,11 +306,16 @@ public partial class PhaseStripeForm : Form
         saveFileDialog.Filter = ImageFileWriter.GetDialogFilter(exportOptions.Format);
         saveFileDialog.DefaultExt = extension.TrimStart('.');
         saveFileDialog.FileName = $"{settings.Phase}{extension}";
+        ApplyExportDialogInitialDirectory();
 
         if (saveFileDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
         }
+
+        _lastExportDirectory = DialogDirectoryResolver.RememberFileDirectory(
+            saveFileDialog.FileName,
+            _lastExportDirectory);
 
         try
         {
@@ -353,17 +357,22 @@ public partial class PhaseStripeForm : Form
             return;
         }
 
+        ApplyExportDialogInitialDirectory();
         if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
         }
 
+        _lastExportDirectory = DialogDirectoryResolver.RememberDirectory(
+            folderBrowserDialog.SelectedPath,
+            _lastExportDirectory);
+
         ImageExportOptions exportOptions = ReadExportOptions();
         string outputDirectory = folderBrowserDialog.SelectedPath;
         string extension = ImageFileWriter.GetExtension(exportOptions.Format);
-        // 开始后台任务前冻结八个相位的全部设置，避免用户操作改变正在导出的批次。
-        PatternSettings[] settings = Enumerable.Range(1, 8).Select(phase => ReadSettings(phase)).ToArray();
-        string exportedOrder = SelectedPixelOrder;
+        int phaseCount = cycleEditor.PeriodLength;
+        // 开始后台任务前冻结完整周期的全部设置，避免用户操作改变正在导出的批次。
+        PatternSettings[] settings = Enumerable.Range(1, phaseCount).Select(phase => ReadSettings(phase)).ToArray();
         string[] targetPaths = settings
             .Select(item => Path.Combine(outputDirectory, $"{item.Phase}{extension}"))
             .ToArray();
@@ -387,14 +396,14 @@ public partial class PhaseStripeForm : Form
         settingsFlowPanel.Enabled = false;
         groupActions.Enabled = false;
         UseWaitCursor = true;
-        statusLabel.Text = "正在批量导出相位 1–8...";
+        statusLabel.Text = $"正在批量导出相位 1–{phaseCount}...";
 
         try
         {
             IReadOnlyList<string> paths = await Task.Run(() =>
             {
                 Directory.CreateDirectory(outputDirectory);
-                var exported = new List<string>(8);
+                var exported = new List<string>(phaseCount);
 
                 foreach (PatternSettings item in settings)
                 {
@@ -409,7 +418,7 @@ public partial class PhaseStripeForm : Form
             statusLabel.Text = $"批量导出完成：{paths.Count} 张 | {outputDirectory}";
             MessageBox.Show(
                 this,
-                $"已导出相位 1–8，共 {paths.Count} 张图卡。\n排列：{exportedOrder}\n目录：{outputDirectory}",
+                $"已导出相位 1–{phaseCount}，共 {paths.Count} 张图卡。\n目录：{outputDirectory}",
                 "导出完成",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -458,6 +467,7 @@ public partial class PhaseStripeForm : Form
             Settings = ReadSettings(),
             OutputFormat = SelectedFormat,
             Quality = (int)numericQuality.Value,
+            LastExportDirectory = _lastExportDirectory,
             PreviewOverlay = new PreviewOverlayPreferences
             {
                 ShowCenterCrosshair = previewControl.ShowCenterCrosshair,

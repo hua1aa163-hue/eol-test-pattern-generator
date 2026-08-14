@@ -1,7 +1,7 @@
 namespace EolTestPatternGenerator.Models;
 
 /// <summary>
-/// 离散串扰图的两路图源组合方式。
+/// 离散光源图的两路图源组合方式。
 /// </summary>
 public enum DiscreteCrosstalkResultType
 {

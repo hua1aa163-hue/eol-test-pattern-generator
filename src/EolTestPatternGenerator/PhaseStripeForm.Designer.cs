@@ -31,19 +31,9 @@ partial class PhaseStripeForm
         numericCanvasWidth = new NumericUpDown();
         labelCanvasWidth = new Label();
         groupRegion = new GroupBox();
-        buttonCenter = new Button();
-        numericPatternHeight = new NumericUpDown();
-        labelPatternHeight = new Label();
-        numericPatternWidth = new NumericUpDown();
-        labelPatternWidth = new Label();
-        numericPatternY = new NumericUpDown();
-        labelPatternY = new Label();
-        numericPatternX = new NumericUpDown();
-        labelPatternX = new Label();
+        regionMarginsEditor = new RegionMarginsEditor();
         groupPhase = new GroupBox();
-        labelOrderHelp = new Label();
-        comboPixelOrder = new ComboBox();
-        labelPixelOrder = new Label();
+        cycleEditor = new CrosstalkCycleEditor();
         numericPhase = new NumericUpDown();
         labelPhase = new Label();
         borderOverlayEditor = new BorderOverlayEditor();
@@ -77,10 +67,6 @@ partial class PhaseStripeForm
         ((System.ComponentModel.ISupportInitialize)numericCanvasHeight).BeginInit();
         ((System.ComponentModel.ISupportInitialize)numericCanvasWidth).BeginInit();
         groupRegion.SuspendLayout();
-        ((System.ComponentModel.ISupportInitialize)numericPatternHeight).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericPatternWidth).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericPatternY).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericPatternX).BeginInit();
         groupPhase.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)numericPhase).BeginInit();
         groupExport.SuspendLayout();
@@ -192,170 +178,48 @@ partial class PhaseStripeForm
         // 
         // groupRegion
         // 
-        groupRegion.Controls.Add(buttonCenter);
-        groupRegion.Controls.Add(numericPatternHeight);
-        groupRegion.Controls.Add(labelPatternHeight);
-        groupRegion.Controls.Add(numericPatternWidth);
-        groupRegion.Controls.Add(labelPatternWidth);
-        groupRegion.Controls.Add(numericPatternY);
-        groupRegion.Controls.Add(labelPatternY);
-        groupRegion.Controls.Add(numericPatternX);
-        groupRegion.Controls.Add(labelPatternX);
+        groupRegion.Controls.Add(regionMarginsEditor);
         groupRegion.Location = new Point(19, 186);
         groupRegion.Margin = new Padding(4, 4, 4, 4);
         groupRegion.Name = "groupRegion";
         groupRegion.Padding = new Padding(4, 4, 4, 4);
-        groupRegion.Size = new Size(550, 225);
+        groupRegion.Size = new Size(550, 320);
         groupRegion.TabIndex = 1;
         groupRegion.TabStop = false;
-        groupRegion.Text = "条纹区域";
-        // 
-        // buttonCenter
-        // 
-        buttonCenter.Location = new Point(375, 156);
-        buttonCenter.Margin = new Padding(4, 4, 4, 4);
-        buttonCenter.Name = "buttonCenter";
-        buttonCenter.Size = new Size(148, 45);
-        buttonCenter.TabIndex = 8;
-        buttonCenter.Text = "区域居中";
-        buttonCenter.UseVisualStyleBackColor = true;
-        buttonCenter.Click += buttonCenter_Click;
-        // 
-        // numericPatternHeight
-        // 
-        numericPatternHeight.Location = new Point(374, 99);
-        numericPatternHeight.Margin = new Padding(4, 4, 4, 4);
-        numericPatternHeight.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericPatternHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-        numericPatternHeight.Name = "numericPatternHeight";
-        numericPatternHeight.Size = new Size(150, 30);
-        numericPatternHeight.TabIndex = 7;
-        numericPatternHeight.Value = new decimal(new int[] { 627, 0, 0, 0 });
-        numericPatternHeight.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelPatternHeight
-        // 
-        labelPatternHeight.AutoSize = true;
-        labelPatternHeight.Location = new Point(290, 105);
-        labelPatternHeight.Margin = new Padding(4, 0, 4, 0);
-        labelPatternHeight.Name = "labelPatternHeight";
-        labelPatternHeight.Size = new Size(46, 24);
-        labelPatternHeight.TabIndex = 6;
-        labelPatternHeight.Text = "高度";
-        // 
-        // numericPatternWidth
-        // 
-        numericPatternWidth.Location = new Point(114, 99);
-        numericPatternWidth.Margin = new Padding(4, 4, 4, 4);
-        numericPatternWidth.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericPatternWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
-        numericPatternWidth.Name = "numericPatternWidth";
-        numericPatternWidth.Size = new Size(150, 30);
-        numericPatternWidth.TabIndex = 5;
-        numericPatternWidth.Value = new decimal(new int[] { 1777, 0, 0, 0 });
-        numericPatternWidth.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelPatternWidth
-        // 
-        labelPatternWidth.AutoSize = true;
-        labelPatternWidth.Location = new Point(27, 105);
-        labelPatternWidth.Margin = new Padding(4, 0, 4, 0);
-        labelPatternWidth.Name = "labelPatternWidth";
-        labelPatternWidth.Size = new Size(46, 24);
-        labelPatternWidth.TabIndex = 4;
-        labelPatternWidth.Text = "宽度";
-        // 
-        // numericPatternY
-        // 
-        numericPatternY.Location = new Point(374, 42);
-        numericPatternY.Margin = new Padding(4, 4, 4, 4);
-        numericPatternY.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericPatternY.Minimum = new decimal(new int[] { 16384, 0, 0, int.MinValue });
-        numericPatternY.Name = "numericPatternY";
-        numericPatternY.Size = new Size(150, 30);
-        numericPatternY.TabIndex = 3;
-        numericPatternY.Value = new decimal(new int[] { 226, 0, 0, 0 });
-        numericPatternY.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelPatternY
-        // 
-        labelPatternY.AutoSize = true;
-        labelPatternY.Location = new Point(290, 48);
-        labelPatternY.Margin = new Padding(4, 0, 4, 0);
-        labelPatternY.Name = "labelPatternY";
-        labelPatternY.Size = new Size(62, 24);
-        labelPatternY.TabIndex = 2;
-        labelPatternY.Text = "左上 Y";
-        // 
-        // numericPatternX
-        // 
-        numericPatternX.Location = new Point(114, 42);
-        numericPatternX.Margin = new Padding(4, 4, 4, 4);
-        numericPatternX.Maximum = new decimal(new int[] { 16384, 0, 0, 0 });
-        numericPatternX.Minimum = new decimal(new int[] { 16384, 0, 0, int.MinValue });
-        numericPatternX.Name = "numericPatternX";
-        numericPatternX.Size = new Size(150, 30);
-        numericPatternX.TabIndex = 1;
-        numericPatternX.Value = new decimal(new int[] { 71, 0, 0, 0 });
-        numericPatternX.ValueChanged += Parameter_ValueChanged;
-        // 
-        // labelPatternX
-        // 
-        labelPatternX.AutoSize = true;
-        labelPatternX.Location = new Point(27, 48);
-        labelPatternX.Margin = new Padding(4, 0, 4, 0);
-        labelPatternX.Name = "labelPatternX";
-        labelPatternX.Size = new Size(63, 24);
-        labelPatternX.TabIndex = 0;
-        labelPatternX.Text = "左上 X";
+        groupRegion.Text = "图案外缘四边距";
+        //
+        // regionMarginsEditor
+        //
+        regionMarginsEditor.CanvasSize = new Size(1920, 1080);
+        regionMarginsEditor.Location = new Point(27, 38);
+        regionMarginsEditor.Margin = new Padding(4);
+        regionMarginsEditor.Name = "regionMarginsEditor";
+        regionMarginsEditor.Size = new Size(496, 256);
+        regionMarginsEditor.TabIndex = 0;
+        regionMarginsEditor.MarginsChanged += regionMarginsEditor_MarginsChanged;
         // 
         // groupPhase
         // 
-        groupPhase.Controls.Add(labelOrderHelp);
-        groupPhase.Controls.Add(comboPixelOrder);
-        groupPhase.Controls.Add(labelPixelOrder);
+        groupPhase.Controls.Add(cycleEditor);
         groupPhase.Controls.Add(numericPhase);
         groupPhase.Controls.Add(labelPhase);
         groupPhase.Location = new Point(19, 419);
         groupPhase.Margin = new Padding(4, 4, 4, 4);
         groupPhase.Name = "groupPhase";
         groupPhase.Padding = new Padding(4, 4, 4, 4);
-        groupPhase.Size = new Size(550, 212);
+        groupPhase.Size = new Size(550, 690);
         groupPhase.TabIndex = 2;
         groupPhase.TabStop = false;
-        groupPhase.Text = "相位与颜色排列";
-        // 
-        // labelOrderHelp
-        // 
-        labelOrderHelp.ForeColor = Color.DimGray;
-        labelOrderHelp.Location = new Point(27, 153);
-        labelOrderHelp.Margin = new Padding(4, 0, 4, 0);
-        labelOrderHelp.Name = "labelOrderHelp";
-        labelOrderHelp.Size = new Size(496, 45);
-        labelOrderHelp.TabIndex = 4;
-        labelOrderHelp.Text = "默认 RGB 与原始 1–8.png 保持一致。";
-        // 
-        // comboPixelOrder
-        // 
-        comboPixelOrder.DropDownStyle = ComboBoxStyle.DropDownList;
-        comboPixelOrder.FormattingEnabled = true;
-        comboPixelOrder.Items.AddRange(new object[] { "RGB", "RBG", "GRB", "GBR", "BRG", "BGR" });
-        comboPixelOrder.Location = new Point(168, 99);
-        comboPixelOrder.Margin = new Padding(4, 4, 4, 4);
-        comboPixelOrder.Name = "comboPixelOrder";
-        comboPixelOrder.Size = new Size(354, 32);
-        comboPixelOrder.TabIndex = 3;
-        comboPixelOrder.SelectedIndexChanged += comboPixelOrder_SelectedIndexChanged;
-        // 
-        // labelPixelOrder
-        // 
-        labelPixelOrder.AutoSize = true;
-        labelPixelOrder.Location = new Point(27, 105);
-        labelPixelOrder.Margin = new Padding(4, 0, 4, 0);
-        labelPixelOrder.Name = "labelPixelOrder";
-        labelPixelOrder.Size = new Size(82, 24);
-        labelPixelOrder.TabIndex = 2;
-        labelPixelOrder.Text = "像素排列";
+        groupPhase.Text = "相位与周期像素通道";
+        //
+        // cycleEditor
+        //
+        cycleEditor.Location = new Point(27, 94);
+        cycleEditor.Margin = new Padding(4);
+        cycleEditor.Name = "cycleEditor";
+        cycleEditor.Size = new Size(496, 574);
+        cycleEditor.TabIndex = 2;
+        cycleEditor.SettingsChanged += cycleEditor_SettingsChanged;
         // 
         // numericPhase
         // 
@@ -377,7 +241,7 @@ partial class PhaseStripeForm
         labelPhase.Name = "labelPhase";
         labelPhase.Size = new Size(88, 24);
         labelPhase.TabIndex = 0;
-        labelPhase.Text = "相位(1-8)";
+        labelPhase.Text = "当前相位";
         // 
         // borderOverlayEditor
         // 
@@ -490,7 +354,7 @@ partial class PhaseStripeForm
         buttonBatchExport.Name = "buttonBatchExport";
         buttonBatchExport.Size = new Size(236, 54);
         buttonBatchExport.TabIndex = 2;
-        buttonBatchExport.Text = "批量导出相位 1–8";
+        buttonBatchExport.Text = "批量导出完整周期";
         buttonBatchExport.UseVisualStyleBackColor = true;
         buttonBatchExport.Click += buttonBatchExport_Click;
         // 
@@ -558,7 +422,7 @@ partial class PhaseStripeForm
         labelPreviewInfo.Name = "labelPreviewInfo";
         labelPreviewInfo.Size = new Size(293, 24);
         labelPreviewInfo.TabIndex = 0;
-        labelPreviewInfo.Text = "预览：1920 × 1080 | 相位 1 | RGB";
+        labelPreviewInfo.Text = "串扰像素排列预览尚未生成";
         // 
         // statusStrip
         // 
@@ -583,11 +447,11 @@ partial class PhaseStripeForm
         // 
         // saveFileDialog
         // 
-        saveFileDialog.Title = "保存 RGB 相移图卡";
+        saveFileDialog.Title = "保存串扰像素排列图卡";
         // 
         // folderBrowserDialog
         // 
-        folderBrowserDialog.Description = "选择 RGB 八步相移图卡的导出目录";
+        folderBrowserDialog.Description = "选择串扰像素排列图卡的导出目录";
         folderBrowserDialog.UseDescriptionForTitle = true;
         // 
         // PhaseStripeForm
@@ -602,7 +466,7 @@ partial class PhaseStripeForm
         MinimumSize = new Size(1669, 1052);
         Name = "PhaseStripeForm";
         StartPosition = FormStartPosition.CenterParent;
-        Text = "串扰图卡";
+        Text = "串扰像素排列";
         FormClosing += PhaseStripeForm_FormClosing;
         FormClosed += PhaseStripeForm_FormClosed;
         splitContainerMain.Panel1.ResumeLayout(false);
@@ -615,11 +479,6 @@ partial class PhaseStripeForm
         ((System.ComponentModel.ISupportInitialize)numericCanvasHeight).EndInit();
         ((System.ComponentModel.ISupportInitialize)numericCanvasWidth).EndInit();
         groupRegion.ResumeLayout(false);
-        groupRegion.PerformLayout();
-        ((System.ComponentModel.ISupportInitialize)numericPatternHeight).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericPatternWidth).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericPatternY).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericPatternX).EndInit();
         groupPhase.ResumeLayout(false);
         groupPhase.PerformLayout();
         ((System.ComponentModel.ISupportInitialize)numericPhase).EndInit();
@@ -646,19 +505,9 @@ partial class PhaseStripeForm
     private NumericUpDown numericCanvasWidth;
     private Label labelCanvasWidth;
     private GroupBox groupRegion;
-    private Button buttonCenter;
-    private NumericUpDown numericPatternHeight;
-    private Label labelPatternHeight;
-    private NumericUpDown numericPatternWidth;
-    private Label labelPatternWidth;
-    private NumericUpDown numericPatternY;
-    private Label labelPatternY;
-    private NumericUpDown numericPatternX;
-    private Label labelPatternX;
+    private RegionMarginsEditor regionMarginsEditor;
     private GroupBox groupPhase;
-    private Label labelOrderHelp;
-    private ComboBox comboPixelOrder;
-    private Label labelPixelOrder;
+    private CrosstalkCycleEditor cycleEditor;
     private NumericUpDown numericPhase;
     private Label labelPhase;
     private BorderOverlayEditor borderOverlayEditor;

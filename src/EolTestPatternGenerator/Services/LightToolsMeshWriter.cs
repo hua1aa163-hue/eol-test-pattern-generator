@@ -6,7 +6,7 @@ using OpenCvSharp;
 namespace EolTestPatternGenerator.Services;
 
 /// <summary>
-/// 将离散串扰图写为 LightTools 可读取的 MESH 光源文本。
+/// 将离散光源图写为 LightTools 可读取的 MESH 光源文本。
 /// </summary>
 public static class LightToolsMeshWriter
 {
@@ -342,7 +342,7 @@ public static class LightToolsMeshWriter
 
         if (image.Cols != settings.CanvasWidth || image.Rows != settings.CanvasHeight)
         {
-            throw new InvalidDataException("LightTools 光源图片尺寸必须与离散串扰设置的画布尺寸相同。");
+            throw new InvalidDataException("LightTools 光源图片尺寸必须与离散光源设置的画布尺寸相同。");
         }
     }
 }

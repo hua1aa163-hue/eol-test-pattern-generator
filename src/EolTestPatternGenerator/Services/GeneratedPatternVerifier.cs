@@ -16,6 +16,10 @@ public static class GeneratedPatternVerifier
     public static void RunAll()
     {
         VerifySolidColors();
+        VerifyMarginGeometryAndPresets();
+        VerifyNegativeMarginsAndSingleDot();
+        VerifySharedDotRadiusPreservesBothLayouts();
+        VerifyMainBatchUsesPerPatternProfiles();
         VerifyScreenOneTwoDimensionalPatterns();
         VerifyAdjustableScreenOnePatterns();
         VerifyRgbPixelOrders();
@@ -24,6 +28,277 @@ public static class GeneratedPatternVerifier
         VerifyNonIntegerContinuousFusion();
         VerifyDiscreteCrosstalkAndLightTools();
         VerifyUserSettingsPersistence();
+        VerifySettingsRecoveryBackup();
+        VerifyDialogDirectoryResolution();
+        VerifyLegacySettingsMigration();
+    }
+
+    /// <summary>验证九点阵与畸变点阵双向同步半径时，两套独立圆心布局都不漂移。</summary>
+    private static void VerifySharedDotRadiusPreservesBothLayouts()
+    {
+        PatternSettings ninePoint = PatternPresets.Create(PatternType.NinePointGrid);
+        PatternSettings distortion = PatternPresets.Create(PatternType.DistortionGrid);
+        (int X, int Y, int Width, int Height) nineGeometry =
+            (ninePoint.PatternX, ninePoint.PatternY, ninePoint.PatternWidth, ninePoint.PatternHeight);
+        (int X, int Y, int Width, int Height) distortionGeometry =
+            (distortion.PatternX, distortion.PatternY, distortion.PatternWidth, distortion.PatternHeight);
+
+        // 模拟在九点阵页把共享半径改为 12。
+        ninePoint.SetDotRadiusPreservingCenterGeometry(12);
+        distortion.SetDotRadiusPreservingCenterGeometry(12);
+        AssertGeometry(ninePoint, nineGeometry, 12, "九点阵→畸变点阵");
+        AssertGeometry(distortion, distortionGeometry, 12, "九点阵→畸变点阵");
+
+        // 模拟切到畸变点阵后反向把共享半径改为 2。
+        ninePoint.SetDotRadiusPreservingCenterGeometry(2);
+        distortion.SetDotRadiusPreservingCenterGeometry(2);
+        AssertGeometry(ninePoint, nineGeometry, 2, "畸变点阵→九点阵");
+        AssertGeometry(distortion, distortionGeometry, 2, "畸变点阵→九点阵");
+
+        PatternSettings singleDot = PatternPresets.Create(PatternType.NinePointGrid);
+        singleDot.Rows = 1;
+        singleDot.Columns = 1;
+        singleDot.NormalizeSingleAxisDotSpans();
+        int singleCenterX = singleDot.PatternX;
+        int singleCenterY = singleDot.PatternY;
+        singleDot.SetDotRadiusPreservingCenterGeometry(9);
+        if (singleDot.PatternX != singleCenterX || singleDot.PatternY != singleCenterY ||
+            singleDot.PatternWidth != 0 || singleDot.PatternHeight != 0)
+        {
+            throw new InvalidOperationException("单行单列点阵同步半径后未保持 0 圆心跨度。");
+        }
+
+        static void AssertGeometry(
+            PatternSettings settings,
+            (int X, int Y, int Width, int Height) expected,
+            int expectedRadius,
+            string description)
+        {
+            if (settings.DotRadius != expectedRadius ||
+                settings.PatternX != expected.X || settings.PatternY != expected.Y ||
+                settings.PatternWidth != expected.Width || settings.PatternHeight != expected.Height)
+            {
+                throw new InvalidOperationException($"{description}同步半径后圆心几何发生漂移。");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 验证用户在点阵/外框页设置的半径和线宽不会被批量导出时
+    /// 当前激活的纯色图卡中无关的默认值覆盖。
+    /// </summary>
+    private static void VerifyMainBatchUsesPerPatternProfiles()
+    {
+        PatternSettings gridProfile = PatternPresets.Create(PatternType.NinePointGrid);
+        gridProfile.DotRadius = 13;
+        PatternSettings borderProfile = PatternPresets.Create(PatternType.Border);
+        borderProfile.LineWidth = 17;
+        var profiles = new Dictionary<PatternType, PatternSettings>
+        {
+            [PatternType.NinePointGrid] = gridProfile,
+            [PatternType.Border] = borderProfile
+        };
+
+        PatternSettings exportedGrid = MainPatternBatchExporter.CreateExportSettings(
+            PatternType.NinePointGrid,
+            1920,
+            1080,
+            fallbackDotRadius: 4,
+            fallbackLineWidth: 5,
+            profiles);
+        PatternSettings exportedBorder = MainPatternBatchExporter.CreateExportSettings(
+            PatternType.Border,
+            1920,
+            1080,
+            fallbackDotRadius: 4,
+            fallbackLineWidth: 5,
+            profiles);
+        PatternSettings fallbackGrid = MainPatternBatchExporter.CreateExportSettings(
+            PatternType.DistortionGrid,
+            1920,
+            1080,
+            fallbackDotRadius: 9,
+            fallbackLineWidth: 5,
+            profiles: null);
+
+        if (exportedGrid.DotRadius != 13 || exportedBorder.LineWidth != 17 || fallbackGrid.DotRadius != 9)
+        {
+            throw new InvalidOperationException(
+                "基础图卡批量导出未优先使用各图卡快照中的半径/线宽。");
+        }
+    }
+
+    /// <summary>验证 v2 四边距与旧参考预设的坐标、尺寸和点阵圆心跨度完全等价。</summary>
+    private static void VerifyMarginGeometryAndPresets()
+    {
+        AssertPreset(
+            PatternType.Border,
+            new RegionMargins(71, 226, 72, 227),
+            expectedX: 71,
+            expectedY: 226,
+            expectedWidth: 1777,
+            expectedHeight: 627);
+        AssertPreset(
+            PatternType.NinePointGrid,
+            new RegionMargins(72, 197, 71, 196),
+            expectedX: 76,
+            expectedY: 201,
+            expectedWidth: 1768,
+            expectedHeight: 678);
+        AssertPreset(
+            PatternType.DistortionGrid,
+            new RegionMargins(72, 227, 71, 226),
+            expectedX: 76,
+            expectedY: 231,
+            expectedWidth: 1768,
+            expectedHeight: 618);
+
+        foreach (PatternType type in new[]
+                 {
+                     PatternType.Black,
+                     PatternType.FullWhite,
+                     PatternType.FullRed,
+                     PatternType.FullGreen,
+                     PatternType.FullBlue,
+                     PatternType.ImportedImage
+                 })
+        {
+            PatternSettings fullCanvas = PatternPresets.Create(type);
+            RegionMargins margins = fullCanvas.GetMargins();
+            if (margins.Left != 0 || margins.Top != 0 || margins.Right != 0 || margins.Bottom != 0 ||
+                fullCanvas.CalculatedOuterWidth != fullCanvas.CanvasWidth ||
+                fullCanvas.CalculatedOuterHeight != fullCanvas.CanvasHeight)
+            {
+                throw new InvalidOperationException($"全屏预设 {type} 未固定为四边距 0。");
+            }
+        }
+
+        // 极端负边距会令派生尺寸超过 int；必须得到受控参数错误而不是整数回绕。
+        bool overflowRejected = false;
+        try
+        {
+            _ = MarginGeometry.Resolve(
+                1920,
+                1080,
+                new RegionMargins(int.MinValue, 0, int.MinValue, 0),
+                "溢出测试");
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            overflowRejected = true;
+        }
+
+        if (!overflowRejected)
+        {
+            throw new InvalidOperationException("四边距 long 溢出校验未拒绝超出 int 的派生区域。");
+        }
+
+        static void AssertPreset(
+            PatternType type,
+            RegionMargins expectedMargins,
+            int expectedX,
+            int expectedY,
+            int expectedWidth,
+            int expectedHeight)
+        {
+            PatternSettings settings = PatternPresets.Create(type);
+            RegionMargins actualMargins = settings.GetMargins();
+            if (actualMargins.Left != expectedMargins.Left ||
+                actualMargins.Top != expectedMargins.Top ||
+                actualMargins.Right != expectedMargins.Right ||
+                actualMargins.Bottom != expectedMargins.Bottom ||
+                settings.PatternX != expectedX ||
+                settings.PatternY != expectedY ||
+                settings.PatternWidth != expectedWidth ||
+                settings.PatternHeight != expectedHeight)
+            {
+                throw new InvalidOperationException(
+                    $"{type} 四边距迁移后与旧预设坐标/尺寸不等价。");
+            }
+        }
+    }
+
+    /// <summary>验证负边距裁剪，以及点阵单行单列时的圆心跨度和圆外缘定义。</summary>
+    private static void VerifyNegativeMarginsAndSingleDot()
+    {
+        PatternSettings rectangle = PatternPresets.Create(PatternType.WhiteRectangle);
+        rectangle.CanvasWidth = 6;
+        rectangle.CanvasHeight = 5;
+        rectangle.SetMargins(new RegionMargins(-2, 1, 1, -1));
+        using (Mat clipped = PatternGenerator.Generate(rectangle))
+        {
+            ForEachPixel(clipped, (x, y, blue, green, red) =>
+            {
+                byte expected = x <= 4 && y >= 1 ? (byte)255 : (byte)0;
+                if (blue != expected || green != expected || red != expected)
+                {
+                    throw new InvalidOperationException($"负边距矩形在 ({x},{y}) 未按画布正确裁剪。");
+                }
+            });
+        }
+
+        PatternSettings singleDot = PatternPresets.Create(PatternType.NinePointGrid);
+        singleDot.CanvasWidth = 9;
+        singleDot.CanvasHeight = 7;
+        singleDot.DotRadius = 1;
+        singleDot.Rows = 1;
+        singleDot.Columns = 1;
+        singleDot.SetMargins(new RegionMargins(3, 2, 3, 2));
+        if (singleDot.CalculatedOuterWidth != 3 || singleDot.CalculatedOuterHeight != 3 ||
+            singleDot.CalculatedCenterSpanWidth != 0 || singleDot.CalculatedCenterSpanHeight != 0 ||
+            singleDot.PatternX != 4 || singleDot.PatternY != 3)
+        {
+            throw new InvalidOperationException("单行单列点阵的外缘尺寸或圆心跨度计算错误。");
+        }
+
+        using Mat dotImage = PatternGenerator.Generate(singleDot);
+        AssertBgr(dotImage, 4, 3, 255, 255, 255, "单点阵圆心");
+        AssertBgr(dotImage, 4, 2, 255, 255, 255, "单点阵上外缘");
+        AssertBgr(dotImage, 3, 3, 255, 255, 255, "单点阵左外缘");
+        AssertBgr(dotImage, 0, 0, 0, 0, 0, "单点阵区域外");
+
+        PatternSettings singleRow = PatternPresets.Create(PatternType.DistortionGrid);
+        int firstCenterX = singleRow.PatternX;
+        int firstCenterY = singleRow.PatternY;
+        int originalHorizontalSpan = singleRow.PatternWidth;
+        singleRow.Rows = 1;
+        if (!singleRow.NormalizeSingleAxisDotSpans() ||
+            singleRow.PatternX != firstCenterX || singleRow.PatternY != firstCenterY ||
+            singleRow.PatternWidth != originalHorizontalSpan || singleRow.PatternHeight != 0 ||
+            singleRow.CalculatedOuterHeight != (2L * singleRow.DotRadius) + 1L)
+        {
+            throw new InvalidOperationException("单行点阵未保留首圆心并将垂直跨度归零。");
+        }
+
+        PatternSettings singleColumn = PatternPresets.Create(PatternType.DistortionGrid);
+        firstCenterX = singleColumn.PatternX;
+        firstCenterY = singleColumn.PatternY;
+        int originalVerticalSpan = singleColumn.PatternHeight;
+        singleColumn.Columns = 1;
+        if (!singleColumn.NormalizeSingleAxisDotSpans() ||
+            singleColumn.PatternX != firstCenterX || singleColumn.PatternY != firstCenterY ||
+            singleColumn.PatternWidth != 0 || singleColumn.PatternHeight != originalVerticalSpan ||
+            singleColumn.CalculatedOuterWidth != (2L * singleColumn.DotRadius) + 1L)
+        {
+            throw new InvalidOperationException("单列点阵未保留首圆心并将水平跨度归零。");
+        }
+
+        PatternSettings inconsistentSingleAxis = PatternPresets.Create(PatternType.NinePointGrid);
+        inconsistentSingleAxis.Rows = 1;
+        bool inconsistentRejected = false;
+        try
+        {
+            using Mat _ = PatternGenerator.Generate(inconsistentSingleAxis);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            inconsistentRejected = true;
+        }
+
+        if (!inconsistentRejected)
+        {
+            throw new InvalidOperationException("生成器未拒绝单行但垂直圆心跨度非 0 的伪外缘配置。");
+        }
     }
 
     /// <summary>
@@ -313,7 +588,7 @@ public static class GeneratedPatternVerifier
     }
 
     /// <summary>
-    /// 验证“1号屏图卡”独立窗口使用的可调画布和左右区域算法。
+    /// 验证“显示器”页面使用的可调画布和左右区域算法。
     /// 测试区域故意重叠，以确认白色区域同样参与绘制，而不是仅依赖白色背景。
     /// </summary>
     private static void VerifyAdjustableScreenOnePatterns()
@@ -322,15 +597,21 @@ public static class GeneratedPatternVerifier
         {
             CanvasWidth = 10,
             CanvasHeight = 8,
-            LeftX = 1,
-            LeftY = 1,
-            LeftWidth = 5,
-            LeftHeight = 5,
-            RightX = 4,
-            RightY = 2,
-            RightWidth = 4,
-            RightHeight = 4
+            LeftRegionLeftMargin = 1,
+            LeftRegionTopMargin = 1,
+            LeftRegionRightMargin = 4,
+            LeftRegionBottomMargin = 2,
+            RightRegionLeftMargin = 4,
+            RightRegionTopMargin = 2,
+            RightRegionRightMargin = 2,
+            RightRegionBottomMargin = 2
         };
+
+        if (settings.CalculatedLeftWidth != 5 || settings.CalculatedLeftHeight != 5 ||
+            settings.CalculatedRightWidth != 4 || settings.CalculatedRightHeight != 4)
+        {
+            throw new InvalidOperationException("显示器左右区域的四边距派生尺寸错误。");
+        }
 
         Verify(
             ScreenOneCardKind.BlackLeftWhiteRight,
@@ -349,7 +630,7 @@ public static class GeneratedPatternVerifier
         void Verify(ScreenOneCardKind cardKind, Func<int, int, bool> isExpectedBlack)
         {
             using Mat image = ScreenOnePatternGenerator.Generate(settings, cardKind);
-            AssertImageShape(image, settings.CanvasWidth, settings.CanvasHeight, $"可调1号屏 {cardKind}");
+            AssertImageShape(image, settings.CanvasWidth, settings.CanvasHeight, $"可调显示器图卡 {cardKind}");
 
             ForEachPixel(image, (x, y, blue, green, red) =>
             {
@@ -361,7 +642,7 @@ public static class GeneratedPatternVerifier
                 if (blue != expected || green != expected || red != expected)
                 {
                     throw new InvalidOperationException(
-                        $"可调1号屏 {cardKind} 在 ({x},{y}) 的 BGR=({blue},{green},{red})，" +
+                        $"可调显示器图卡 {cardKind} 在 ({x},{y}) 的 BGR=({blue},{green},{red})，" +
                         $"期望 {(expected == 0 ? "黑色" : "白色")}。");
                 }
             });
@@ -382,11 +663,11 @@ public static class GeneratedPatternVerifier
         if (!string.Equals(actualFileName, expectedFileName, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                $"1号屏模式 {mode} 的文件名为“{actualFileName}”，期望“{expectedFileName}”。");
+                $"显示器模式 {mode} 的文件名为“{actualFileName}”，期望“{expectedFileName}”。");
         }
 
         using Mat image = PatternGenerator.Generate(settings);
-        AssertImageShape(image, 3200, 2000, $"1号屏 {expectedFileName}");
+        AssertImageShape(image, 3200, 2000, $"显示器 {expectedFileName}");
 
         long blackPixels = 0;
         int blackMinX = image.Cols;
@@ -405,7 +686,7 @@ public static class GeneratedPatternVerifier
             if (blue != expected || green != expected || red != expected)
             {
                 throw new InvalidOperationException(
-                    $"1号屏 {expectedFileName} 在 ({x},{y}) 的 BGR=({blue},{green},{red})，" +
+                    $"显示器 {expectedFileName} 在 ({x},{y}) 的 BGR=({blue},{green},{red})，" +
                     $"期望 {(expectedBlack ? "黑色" : "白色")}。");
             }
 
@@ -425,7 +706,7 @@ public static class GeneratedPatternVerifier
         if (blackPixels != expectedBlackPixels)
         {
             throw new InvalidOperationException(
-                $"1号屏 {expectedFileName} 有 {blackPixels:N0} 个黑色像素，" +
+                $"显示器 {expectedFileName} 有 {blackPixels:N0} 个黑色像素，" +
                 $"期望 {expectedBlackPixels:N0} 个。");
         }
 
@@ -435,7 +716,7 @@ public static class GeneratedPatternVerifier
             blackMaxX != expectedMaxX || blackMaxY != 1949)
         {
             throw new InvalidOperationException(
-                $"1号屏 {expectedFileName} 的黑色包围盒为 " +
+                $"显示器 {expectedFileName} 的黑色包围盒为 " +
                 $"({blackMinX},{blackMinY})-({blackMaxX},{blackMaxY})，" +
                 $"期望 ({expectedMinX},50)-({expectedMaxX},1949)。");
         }
@@ -453,6 +734,104 @@ public static class GeneratedPatternVerifier
             using Mat actual = PatternGenerator.Generate(settings);
             AssertImageShape(actual, settings.CanvasWidth, settings.CanvasHeight, $"RGB 排列 {order}");
             VerifyChannelPermutation(baseline, actual, order);
+
+            // 显式采用新版周期预设时必须与没有 PixelCycle 字段的旧配置逐像素一致。
+            PatternSettings migrated = settings.Clone();
+            migrated.PixelOrder = order == RgbPixelOrder.RGB ? RgbPixelOrder.BGR : RgbPixelOrder.RGB;
+            migrated.PixelCycle = CrosstalkPixelCyclePresets.CreateLegacy(order);
+            using Mat migratedImage = PatternGenerator.Generate(migrated);
+            AssertImagesEqual(actual, migratedImage, $"旧 {order} 排列迁移");
+
+            if (!CrosstalkPixelCyclePresets.TryGetLegacyOrder(migrated.PixelCycle, out RgbPixelOrder detected) ||
+                detected != order)
+            {
+                throw new InvalidOperationException($"新版周期未能识别旧 {order} 排列预设。");
+            }
+        }
+
+        VerifyCustomPixelCycle();
+    }
+
+    /// <summary>验证可变周期、逐像素多通道/全灭选择、相位和斜向步进。</summary>
+    private static void VerifyCustomPixelCycle()
+    {
+        PatternSettings settings = CreateSmallPhaseSettings(RgbPixelOrder.BGR);
+        settings.CanvasWidth = 5;
+        settings.CanvasHeight = 2;
+        settings.PatternWidth = 5;
+        settings.PatternHeight = 2;
+        settings.PixelCycle = new CrosstalkPixelCycle
+        {
+            Pixels =
+            [
+                RgbChannelMask.None,
+                RgbChannelMask.Red,
+                RgbChannelMask.Green,
+                RgbChannelMask.Blue,
+                RgbChannelMask.All
+            ],
+            ColumnAdvance = 1,
+            RowAdvance = 0
+        };
+
+        using (Mat horizontal = PatternGenerator.Generate(settings))
+        {
+            ForEachPixel(horizontal, (x, y, blue, green, red) =>
+            {
+                AssertBinaryChannel(blue, PatternType.PhaseStripes, x, y, "B");
+                AssertBinaryChannel(green, PatternType.PhaseStripes, x, y, "G");
+                AssertBinaryChannel(red, PatternType.PhaseStripes, x, y, "R");
+            });
+            AssertBgr(horizontal, 0, 0, 0, 0, 0, "自定义周期全灭像素");
+            AssertBgr(horizontal, 1, 0, 0, 0, 255, "自定义周期红像素");
+            AssertBgr(horizontal, 2, 0, 0, 255, 0, "自定义周期绿像素");
+            AssertBgr(horizontal, 3, 0, 255, 0, 0, "自定义周期蓝像素");
+            AssertBgr(horizontal, 4, 0, 255, 255, 255, "自定义周期三通道像素");
+        }
+
+        // 相位采用与旧版相同的 1 基编号；相位 2 使左上角读取周期的第 2 个位置。
+        settings.Phase = 2;
+        using (Mat shifted = PatternGenerator.Generate(settings))
+        {
+            AssertBgr(shifted, 0, 0, 0, 0, 255, "自定义周期相位偏移");
+        }
+
+        settings.Phase = 1;
+        settings.CanvasWidth = 4;
+        settings.PatternWidth = 4;
+        settings.PixelCycle = new CrosstalkPixelCycle
+        {
+            Pixels =
+            [
+                RgbChannelMask.Red,
+                RgbChannelMask.Green,
+                RgbChannelMask.Blue,
+                RgbChannelMask.None
+            ],
+            ColumnAdvance = -1,
+            RowAdvance = 1
+        };
+        using (Mat diagonal = PatternGenerator.Generate(settings))
+        {
+            // (x=1,y=0) 的位置为 -1 mod 4 = 3（全灭），下一行则回到索引 0（红）。
+            AssertBgr(diagonal, 1, 0, 0, 0, 0, "自定义周期负向斜率");
+            AssertBgr(diagonal, 1, 1, 0, 0, 255, "自定义周期纵向步进");
+        }
+
+        PatternSettings clone = settings.Clone();
+        clone.PixelCycle!.Pixels[0] = RgbChannelMask.All;
+        if (settings.PixelCycle.Pixels[0] != RgbChannelMask.Red)
+        {
+            throw new InvalidOperationException("PatternSettings.Clone 未深拷贝串扰像素周期。");
+        }
+
+        CrosstalkPixelCycle resized = settings.PixelCycle.Clone();
+        resized.Resize(6);
+        if (resized.PeriodLength != 6 ||
+            resized.Pixels[4] != RgbChannelMask.None ||
+            resized.Pixels[5] != RgbChannelMask.None)
+        {
+            throw new InvalidOperationException("串扰像素周期扩展时未以全灭像素补齐。");
         }
     }
 
@@ -508,6 +887,17 @@ public static class GeneratedPatternVerifier
                         $"RGB 基准为 ({logicalRed},{logicalGreen},{logicalBlue})。");
                 }
             }
+        }
+    }
+
+    private static void AssertImagesEqual(Mat expected, Mat actual, string description)
+    {
+        AssertImageShape(actual, expected.Cols, expected.Rows, description);
+        double maximumDifference = Cv2.Norm(expected, actual, NormTypes.INF);
+        if (maximumDifference != 0d)
+        {
+            throw new InvalidOperationException(
+                $"{description} 与旧版输出不一致，最大通道差异为 {maximumDifference}。");
         }
     }
 
@@ -615,11 +1005,11 @@ public static class GeneratedPatternVerifier
         string fileName = DiscreteCrosstalkGenerator.GetBmpFileName(settings, 0);
         if (!string.Equals(fileName, "5.00_8_4_0WB.bmp", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException($"离散串扰文件名为 {fileName}，期望 5.00_8_4_0WB.bmp。");
+            throw new InvalidOperationException($"离散光源文件名为 {fileName}，期望 5.00_8_4_0WB.bmp。");
         }
 
         using Mat image = DiscreteCrosstalkGenerator.Generate(settings);
-        AssertImageShape(image, 4, 2, "离散串扰4×2样例");
+        AssertImageShape(image, 4, 2, "离散光源 4×2 样例");
         ForEachPixel(image, (x, y, blue, green, red) =>
         {
             AssertBinaryChannel(blue, PatternType.PhaseStripes, x, y, "B");
@@ -635,20 +1025,176 @@ public static class GeneratedPatternVerifier
         string actualMesh = LightToolsMeshWriter.CreateSingleSourceText(settings, image);
         if (!string.Equals(actualMesh, expectedMesh, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("离散串扰4×2样例的 LightTools MESH 文本与参考结果不一致。");
+            throw new InvalidOperationException("离散光源 4×2 样例的 LightTools MESH 文本与参考结果不一致。");
         }
 
         settings.Group = -1;
         IReadOnlyList<int> groups = DiscreteCrosstalkGenerator.ResolveGroups(settings);
         if (groups.Count != 8 || !groups.SequenceEqual(Enumerable.Range(0, 8)))
         {
-            throw new InvalidOperationException("离散串扰 Group=-1 未解析为 0 到 7 共八组。");
+            throw new InvalidOperationException("离散光源 Group=-1 未解析为 0 到 7 共八组。");
         }
     }
 
     /// <summary>
     /// 使用独立临时文件验证用户输入可以跨实例保存，且 Load 返回深副本。
     /// </summary>
+    private static void VerifyLegacySettingsMigration()
+    {
+        string uniqueFileName = $"EolTestPatternGenerator_Migration_{Guid.NewGuid():N}.json";
+        string temporaryRoot = Path.GetFullPath(Path.GetTempPath());
+        string settingsPath = Path.GetFullPath(Path.Combine(temporaryRoot, uniqueFileName));
+        if (!string.Equals(
+                Path.GetDirectoryName(settingsPath),
+                temporaryRoot.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(Path.GetFileName(settingsPath), uniqueFileName, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("无法确认 v1 配置迁移自检临时文件的安全范围。");
+        }
+
+        const string version1Json = """
+        {
+          "Version": 1,
+          "Main": {
+            "PatternProfiles": {
+              "NinePointGrid": {
+                "PatternType": "NinePointGrid",
+                "CanvasWidth": 1920,
+                "CanvasHeight": 1080,
+                "PatternX": 76,
+                "PatternY": 201,
+                "PatternWidth": 1768,
+                "PatternHeight": 678,
+                "DotRadius": 4,
+                "Rows": 3,
+                "Columns": 3,
+                "BorderOverlay": {
+                  "Enabled": true,
+                  "X": -2,
+                  "Y": 3,
+                  "Width": 100,
+                  "Height": 50,
+                  "LineWidth": 2
+                }
+              },
+              "DistortionGrid": {
+                "PatternType": "DistortionGrid",
+                "CanvasWidth": 20,
+                "CanvasHeight": 10,
+                "PatternX": 4,
+                "PatternY": 3,
+                "PatternWidth": 12,
+                "PatternHeight": 4,
+                "DotRadius": 1,
+                "Rows": 1,
+                "Columns": 1
+              }
+            }
+          },
+          "PhaseStripe": {
+            "Settings": {
+              "PatternType": "PhaseStripes",
+              "CanvasWidth": 1920,
+              "CanvasHeight": 1080,
+              "PatternX": 71,
+              "PatternY": 226,
+              "PatternWidth": 1777,
+              "PatternHeight": 627
+            }
+          },
+          "ScreenOne": {
+            "Settings": {
+              "CanvasWidth": 3200,
+              "CanvasHeight": 2000,
+              "LeftX": 50,
+              "LeftY": 50,
+              "LeftWidth": 1500,
+              "LeftHeight": 1900,
+              "RightX": 1650,
+              "RightY": 50,
+              "RightWidth": 1500,
+              "RightHeight": 1900
+            }
+          }
+        }
+        """;
+
+        try
+        {
+            File.WriteAllText(settingsPath, version1Json);
+            var store = new UserSettingsStore(settingsPath);
+            ApplicationPreferences migrated = store.Load();
+            if (store.LastLoadError is not null ||
+                migrated.Version != ApplicationPreferences.CurrentVersion ||
+                migrated.Workspace.SelectedNavigationIndex != 0 ||
+                migrated.Main.LastImportedImageDirectory.Length != 0 ||
+                migrated.Main.LastExportDirectory.Length != 0 ||
+                migrated.PhaseStripe.LastExportDirectory.Length != 0 ||
+                migrated.ScreenOne.LastExportDirectory.Length != 0)
+            {
+                throw new InvalidOperationException("v1 配置未能无错误迁移并补齐新增持久化默认值。", store.LastLoadError);
+            }
+
+            PatternSettings grid = migrated.Main.PatternProfiles[PatternType.NinePointGrid];
+            PatternSettings migratedSingleDot = migrated.Main.PatternProfiles[PatternType.DistortionGrid];
+            RegionMargins gridMargins = grid.GetMargins();
+            RegionMargins borderMargins = grid.BorderOverlay.GetMargins();
+            ScreenOneSettings screen = migrated.ScreenOne.Settings;
+            if (gridMargins.Left != 72 || gridMargins.Top != 197 ||
+                gridMargins.Right != 71 || gridMargins.Bottom != 196 ||
+                grid.PatternX != 76 || grid.PatternY != 201 ||
+                grid.PatternWidth != 1768 || grid.PatternHeight != 678 ||
+                borderMargins.Left != -2 || borderMargins.Top != 3 ||
+                borderMargins.Right != 1822 || borderMargins.Bottom != 1027 ||
+                screen.LeftRegionLeftMargin != 50 || screen.LeftRegionRightMargin != 1650 ||
+                screen.RightRegionLeftMargin != 1650 || screen.RightRegionRightMargin != 50)
+            {
+                throw new InvalidOperationException("v1 坐标尺寸未无损换算为 v2 四边距。");
+            }
+
+            RegionMargins migratedSingleDotMargins = migratedSingleDot.GetMargins();
+            if (migratedSingleDot.PatternX != 4 || migratedSingleDot.PatternY != 3 ||
+                migratedSingleDot.PatternWidth != 0 || migratedSingleDot.PatternHeight != 0 ||
+                migratedSingleDotMargins.Left != 3 || migratedSingleDotMargins.Top != 2 ||
+                migratedSingleDotMargins.Right != 14 || migratedSingleDotMargins.Bottom != 5)
+            {
+                throw new InvalidOperationException(
+                    "v1 单行单列点阵未在保持首圆心像素的同时迁移为真实外缘。");
+            }
+
+            using (Mat migratedSingleDotImage = PatternGenerator.Generate(migratedSingleDot))
+            {
+                AssertBgr(migratedSingleDotImage, 4, 3, 255, 255, 255, "v1 单行单列点阵圆心");
+                AssertBgr(migratedSingleDotImage, 3, 3, 255, 255, 255, "v1 单行单列点阵外缘");
+                AssertBgr(migratedSingleDotImage, 16, 3, 0, 0, 0, "v1 已忽略跨度不应生成额外圆点");
+            }
+
+            PatternSettings gridWithoutOverlay = grid.Clone();
+            gridWithoutOverlay.BorderOverlay.Enabled = false;
+            using Mat migratedImage = PatternGenerator.Generate(gridWithoutOverlay);
+            using Mat presetImage = PatternGenerator.Generate(PatternPresets.Create(PatternType.NinePointGrid));
+            AssertImagesEqual(presetImage, migratedImage, "v1 点阵迁移像素");
+
+            store.Save(migrated);
+            string version2Json = File.ReadAllText(settingsPath);
+            if (!version2Json.Contains("\"Version\": 2", StringComparison.Ordinal) ||
+                !version2Json.Contains("\"LeftMargin\"", StringComparison.Ordinal) ||
+                version2Json.Contains("\"PatternX\"", StringComparison.Ordinal) ||
+                version2Json.Contains("\"LeftX\"", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("迁移后的配置没有以纯 v2 四边距格式保存。");
+            }
+        }
+        finally
+        {
+            if (File.Exists(settingsPath))
+            {
+                File.Delete(settingsPath);
+            }
+        }
+    }
+
     private static void VerifyUserSettingsPersistence()
     {
         string uniqueFileName = $"EolTestPatternGenerator_Settings_{Guid.NewGuid():N}.json";
@@ -667,7 +1213,18 @@ public static class GeneratedPatternVerifier
             var writer = new UserSettingsStore(settingsPath);
             writer.UpdateAndSave(preferences =>
             {
+                preferences.Workspace.SelectedNavigationIndex = 6;
                 preferences.Main.Quality = 42;
+                preferences.Main.LastImportedImageDirectory = @"C:\图卡\输入";
+                preferences.Main.LastExportDirectory = @"D:\图卡\主界面输出";
+                preferences.PhaseStripe.LastExportDirectory = @"D:\图卡\串扰输出";
+                preferences.ScreenOne.LastExportDirectory = @"D:\图卡\显示器输出";
+                preferences.PhaseStripe.Settings.PixelCycle = new CrosstalkPixelCycle
+                {
+                    Pixels = [RgbChannelMask.Red, RgbChannelMask.Green | RgbChannelMask.Blue],
+                    ColumnAdvance = -2,
+                    RowAdvance = 3
+                };
                 preferences.NonIntegerBlend.Matlab.WriteMesh = false;
                 preferences.NonIntegerBlend.Discrete.OutputFormat = ImageFormatKind.Bmp;
                 preferences.NonIntegerBlend.Converter.SourceImagePath = @"C:\测试\输入图.png";
@@ -675,7 +1232,20 @@ public static class GeneratedPatternVerifier
 
             var reader = new UserSettingsStore(settingsPath);
             ApplicationPreferences loaded = reader.Load();
-            if (loaded.Main.Quality != 42 ||
+            if (loaded.Workspace.SelectedNavigationIndex != 6 ||
+                loaded.Main.Quality != 42 ||
+                !string.Equals(loaded.Main.LastImportedImageDirectory, @"C:\图卡\输入", StringComparison.Ordinal) ||
+                !string.Equals(loaded.Main.LastExportDirectory, @"D:\图卡\主界面输出", StringComparison.Ordinal) ||
+                !string.Equals(loaded.PhaseStripe.LastExportDirectory, @"D:\图卡\串扰输出", StringComparison.Ordinal) ||
+                !string.Equals(loaded.ScreenOne.LastExportDirectory, @"D:\图卡\显示器输出", StringComparison.Ordinal) ||
+                loaded.PhaseStripe.Settings.PixelCycle is not
+                {
+                    PeriodLength: 2,
+                    ColumnAdvance: -2,
+                    RowAdvance: 3
+                } loadedCycle ||
+                loadedCycle.Pixels[0] != RgbChannelMask.Red ||
+                loadedCycle.Pixels[1] != (RgbChannelMask.Green | RgbChannelMask.Blue) ||
                 loaded.NonIntegerBlend.Matlab.WriteMesh ||
                 loaded.NonIntegerBlend.Discrete.OutputFormat != ImageFormatKind.Bmp ||
                 !string.Equals(
@@ -687,9 +1257,20 @@ public static class GeneratedPatternVerifier
             }
 
             loaded.Main.Quality = 7;
-            if (reader.Load().Main.Quality != 42)
+            loaded.Workspace.SelectedNavigationIndex = 1;
+            loaded.Main.LastExportDirectory = @"E:\被修改";
+            loaded.PhaseStripe.Settings.PixelCycle!.Pixels[0] = RgbChannelMask.All;
+            ApplicationPreferences unchanged = reader.Load();
+            if (unchanged.Main.Quality != 42 ||
+                unchanged.Workspace.SelectedNavigationIndex != 6 ||
+                !string.Equals(unchanged.Main.LastExportDirectory, @"D:\图卡\主界面输出", StringComparison.Ordinal))
             {
                 throw new InvalidOperationException("设置仓库 Load 返回了共享的可变对象，而不是深副本。");
+            }
+
+            if (reader.Load().PhaseStripe.Settings.PixelCycle!.Pixels[0] != RgbChannelMask.Red)
+            {
+                throw new InvalidOperationException("设置仓库 Load 未深拷贝串扰像素周期。");
             }
         }
         finally
@@ -698,6 +1279,160 @@ public static class GeneratedPatternVerifier
             {
                 File.Delete(settingsPath);
             }
+        }
+    }
+
+    /// <summary>
+    /// 验证损坏配置和未来版本配置不会被默认值静默覆盖：
+    /// 首次保存会先保留唯一原文备份，备份失败时则拒绝写入。
+    /// </summary>
+    private static void VerifySettingsRecoveryBackup()
+    {
+        VerifyRecoveryCase(
+            "{ 这不是有效 JSON",
+            typeof(System.Text.Json.JsonException),
+            verifyLockedBackupFailure: true,
+            "损坏配置");
+        VerifyRecoveryCase(
+            """
+            {
+              "Version": 999,
+              "Sentinel": "future-version-original"
+            }
+            """,
+            typeof(NotSupportedException),
+            verifyLockedBackupFailure: false,
+            "未来版本配置");
+
+        static void VerifyRecoveryCase(
+            string originalText,
+            Type expectedLoadErrorType,
+            bool verifyLockedBackupFailure,
+            string description)
+        {
+            string uniqueFileName = $"EolTestPatternGenerator_Recovery_{Guid.NewGuid():N}.json";
+            string temporaryRoot = Path.GetFullPath(Path.GetTempPath())
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            string settingsPath = Path.GetFullPath(Path.Combine(temporaryRoot, uniqueFileName));
+            if (!string.Equals(
+                    Path.GetDirectoryName(settingsPath),
+                    temporaryRoot,
+                    StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(Path.GetFileName(settingsPath), uniqueFileName, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("无法确认恢复备份自检临时文件的安全范围。");
+            }
+
+            string backupPattern = uniqueFileName + ".recovery-*";
+            try
+            {
+                File.WriteAllText(settingsPath, originalText);
+                byte[] originalBytes = File.ReadAllBytes(settingsPath);
+                var store = new UserSettingsStore(settingsPath);
+                _ = store.Load();
+                Exception? loadError = store.LastLoadError;
+                if (loadError is null ||
+                    !expectedLoadErrorType.IsInstanceOfType(loadError))
+                {
+                    throw new InvalidOperationException($"{description}未记录预期的加载错误。", loadError);
+                }
+
+                if (verifyLockedBackupFailure)
+                {
+                    Exception? saveError;
+                    bool saved;
+                    using (var lockedSource = new FileStream(
+                               settingsPath,
+                               FileMode.Open,
+                               FileAccess.ReadWrite,
+                               FileShare.None))
+                    {
+                        saved = store.TryUpdateAndSave(
+                            preferences => preferences.Main.Quality = 40,
+                            out saveError);
+                    }
+
+                    if (saved || saveError is not IOException ||
+                        !File.ReadAllBytes(settingsPath).SequenceEqual(originalBytes) ||
+                        Directory.EnumerateFiles(temporaryRoot, backupPattern).Any())
+                    {
+                        throw new InvalidOperationException(
+                            "恢复备份失败时未拒绝覆盖原配置，或留下了不完整备份。",
+                            saveError);
+                    }
+                }
+
+                store.UpdateAndSave(preferences => preferences.Main.Quality = 41);
+                string backupPath = store.LastRecoveryBackupPath
+                    ?? throw new InvalidOperationException($"{description}首次保存前未创建恢复备份。");
+                string[] firstBackups = Directory.EnumerateFiles(temporaryRoot, backupPattern).ToArray();
+                if (!string.Equals(
+                        Path.GetDirectoryName(backupPath),
+                        temporaryRoot,
+                        StringComparison.OrdinalIgnoreCase) ||
+                    firstBackups.Length != 1 ||
+                    !string.Equals(firstBackups[0], backupPath, StringComparison.OrdinalIgnoreCase) ||
+                    !File.Exists(backupPath) ||
+                    !File.ReadAllBytes(backupPath).SequenceEqual(originalBytes) ||
+                    store.LastLoadError is null)
+                {
+                    throw new InvalidOperationException($"{description}的唯一恢复备份或错误信息不完整。");
+                }
+
+                // 同一次恢复之后的普通保存不应重复备份。
+                store.UpdateAndSave(preferences => preferences.Main.Quality = 42);
+                string[] finalBackups = Directory.EnumerateFiles(temporaryRoot, backupPattern).ToArray();
+                ApplicationPreferences reloaded = store.Reload();
+                if (finalBackups.Length != 1 ||
+                    !string.Equals(store.LastRecoveryBackupPath, backupPath, StringComparison.OrdinalIgnoreCase) ||
+                    !File.ReadAllBytes(backupPath).SequenceEqual(originalBytes) ||
+                    reloaded.Main.Quality != 42 ||
+                    store.LastLoadError is not null)
+                {
+                    throw new InvalidOperationException($"{description}恢复备份后的保存或重载不正确。");
+                }
+            }
+            finally
+            {
+                if (File.Exists(settingsPath))
+                {
+                    File.Delete(settingsPath);
+                }
+
+                foreach (string backupPath in Directory.EnumerateFiles(temporaryRoot, backupPattern))
+                {
+                    File.Delete(backupPath);
+                }
+            }
+        }
+    }
+
+    private static void VerifyDialogDirectoryResolution()
+    {
+        string temporaryRoot = Path.GetFullPath(Path.GetTempPath())
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string nonexistentDirectory = Path.Combine(
+            temporaryRoot,
+            $"EolTestPatternGenerator_Missing_{Guid.NewGuid():N}");
+        string fallbackFile = Path.Combine(temporaryRoot, "尚未创建的图片.png");
+
+        string existing = DialogDirectoryResolver.ResolveExistingDirectory(temporaryRoot);
+        string missing = DialogDirectoryResolver.ResolveExistingDirectory(nonexistentDirectory);
+        string fallback = DialogDirectoryResolver.ResolveExistingDirectory(nonexistentDirectory, fallbackFile);
+        string remembered = DialogDirectoryResolver.RememberFileDirectory(fallbackFile);
+        string rememberedDirectory = DialogDirectoryResolver.RememberDirectory(
+            nonexistentDirectory,
+            temporaryRoot);
+        string malformed = DialogDirectoryResolver.ResolveExistingDirectory("\0无效路径");
+
+        if (!string.Equals(existing, temporaryRoot, StringComparison.OrdinalIgnoreCase) ||
+            missing.Length != 0 ||
+            !string.Equals(fallback, temporaryRoot, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(remembered, temporaryRoot, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(rememberedDirectory, temporaryRoot, StringComparison.OrdinalIgnoreCase) ||
+            malformed.Length != 0)
+        {
+            throw new InvalidOperationException("文件对话框初始目录的存在性检查或安全回退不正确。");
         }
     }
 

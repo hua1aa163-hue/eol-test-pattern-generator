@@ -58,13 +58,13 @@ partial class BorderOverlayEditor
         labelX.Name = "labelX";
         labelX.Size = new Size(19, 20);
         labelX.TabIndex = 1;
-        labelX.Text = "X";
+        labelX.Text = "左边";
         //
         // numericX
         //
         numericX.Location = new Point(54, 36);
-        numericX.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericX.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
+        numericX.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericX.Minimum = new decimal(new int[] { int.MinValue, 0, 0, int.MinValue });
         numericX.Name = "numericX";
         numericX.Size = new Size(103, 27);
         numericX.TabIndex = 2;
@@ -78,13 +78,13 @@ partial class BorderOverlayEditor
         labelY.Name = "labelY";
         labelY.Size = new Size(18, 20);
         labelY.TabIndex = 3;
-        labelY.Text = "Y";
+        labelY.Text = "上边";
         //
         // numericY
         //
         numericY.Location = new Point(228, 36);
-        numericY.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericY.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
+        numericY.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericY.Minimum = new decimal(new int[] { int.MinValue, 0, 0, int.MinValue });
         numericY.Name = "numericY";
         numericY.Size = new Size(103, 27);
         numericY.TabIndex = 4;
@@ -98,18 +98,18 @@ partial class BorderOverlayEditor
         labelWidth.Name = "labelWidth";
         labelWidth.Size = new Size(41, 20);
         labelWidth.TabIndex = 5;
-        labelWidth.Text = "宽度";
+        labelWidth.Text = "右边";
         //
         // numericWidth
         //
         numericWidth.Location = new Point(54, 72);
-        numericWidth.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+        numericWidth.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericWidth.Minimum = new decimal(new int[] { int.MinValue, 0, 0, int.MinValue });
         numericWidth.Name = "numericWidth";
         numericWidth.Size = new Size(103, 27);
         numericWidth.TabIndex = 6;
         numericWidth.ThousandsSeparator = true;
-        numericWidth.Value = new decimal(new int[] { 1777, 0, 0, 0 });
+        numericWidth.Value = new decimal(new int[] { 72, 0, 0, 0 });
         numericWidth.ValueChanged += ParameterChanged;
         //
         // labelHeight
@@ -119,18 +119,18 @@ partial class BorderOverlayEditor
         labelHeight.Name = "labelHeight";
         labelHeight.Size = new Size(41, 20);
         labelHeight.TabIndex = 7;
-        labelHeight.Text = "高度";
+        labelHeight.Text = "下边";
         //
         // numericHeight
         //
         numericHeight.Location = new Point(228, 72);
-        numericHeight.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+        numericHeight.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericHeight.Minimum = new decimal(new int[] { int.MinValue, 0, 0, int.MinValue });
         numericHeight.Name = "numericHeight";
         numericHeight.Size = new Size(103, 27);
         numericHeight.TabIndex = 8;
         numericHeight.ThousandsSeparator = true;
-        numericHeight.Value = new decimal(new int[] { 627, 0, 0, 0 });
+        numericHeight.Value = new decimal(new int[] { 227, 0, 0, 0 });
         numericHeight.ValueChanged += ParameterChanged;
         //
         // labelLineWidth
@@ -159,7 +159,7 @@ partial class BorderOverlayEditor
         buttonCenter.Name = "buttonCenter";
         buttonCenter.Size = new Size(103, 34);
         buttonCenter.TabIndex = 11;
-        buttonCenter.Text = "白框居中";
+        buttonCenter.Text = "保持尺寸居中";
         buttonCenter.UseVisualStyleBackColor = true;
         buttonCenter.Click += buttonCenter_Click;
         //
@@ -168,9 +168,9 @@ partial class BorderOverlayEditor
         labelHelp.ForeColor = Color.DimGray;
         labelHelp.Location = new Point(4, 147);
         labelHelp.Name = "labelHelp";
-        labelHelp.Size = new Size(327, 39);
+        labelHelp.Size = new Size(327, 48);
         labelHelp.TabIndex = 12;
-        labelHelp.Text = "白框是独立叠加层，可应用到纯色、点阵、分屏、相移或导入图片。";
+        labelHelp.Text = "实时白框尺寸：1777 × 627 px\n四边距允许为负值，越界部分会裁剪。";
         //
         // BorderOverlayEditor
         //

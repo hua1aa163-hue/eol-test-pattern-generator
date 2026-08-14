@@ -4,7 +4,7 @@ using OpenCvSharp;
 namespace EolTestPatternGenerator.Services;
 
 /// <summary>
-/// 根据可编辑参数生成“1号屏”的三种二值图卡。
+/// 根据可编辑参数生成“显示器”的三种二值图卡。
 /// </summary>
 public static class ScreenOnePatternGenerator
 {
@@ -17,6 +17,8 @@ public static class ScreenOnePatternGenerator
     public static Mat Generate(ScreenOneSettings settings, ScreenOneCardKind cardKind)
     {
         Validate(settings);
+        PixelRegion leftRegion = settings.GetLeftRegion();
+        PixelRegion rightRegion = settings.GetRightRegion();
 
         // 三张参考图的区域外背景均为纯白色。
         var canvas = new Mat(
@@ -33,56 +35,56 @@ public static class ScreenOnePatternGenerator
                     // 后绘制右侧白区域；区域重叠时，白色区域仍能实际覆盖黑色区域。
                     FillRectangleClipped(
                         canvas,
-                        settings.LeftX,
-                        settings.LeftY,
-                        settings.LeftWidth,
-                        settings.LeftHeight,
+                        leftRegion.X,
+                        leftRegion.Y,
+                        leftRegion.Width,
+                        leftRegion.Height,
                         Scalar.Black);
                     FillRectangleClipped(
                         canvas,
-                        settings.RightX,
-                        settings.RightY,
-                        settings.RightWidth,
-                        settings.RightHeight,
+                        rightRegion.X,
+                        rightRegion.Y,
+                        rightRegion.Width,
+                        rightRegion.Height,
                         White);
                     break;
 
                 case ScreenOneCardKind.WhiteLeftBlackRight:
                     FillRectangleClipped(
                         canvas,
-                        settings.LeftX,
-                        settings.LeftY,
-                        settings.LeftWidth,
-                        settings.LeftHeight,
+                        leftRegion.X,
+                        leftRegion.Y,
+                        leftRegion.Width,
+                        leftRegion.Height,
                         White);
                     FillRectangleClipped(
                         canvas,
-                        settings.RightX,
-                        settings.RightY,
-                        settings.RightWidth,
-                        settings.RightHeight,
+                        rightRegion.X,
+                        rightRegion.Y,
+                        rightRegion.Width,
+                        rightRegion.Height,
                         Scalar.Black);
                     break;
 
                 case ScreenOneCardKind.BlackBoth:
                     FillRectangleClipped(
                         canvas,
-                        settings.LeftX,
-                        settings.LeftY,
-                        settings.LeftWidth,
-                        settings.LeftHeight,
+                        leftRegion.X,
+                        leftRegion.Y,
+                        leftRegion.Width,
+                        leftRegion.Height,
                         Scalar.Black);
                     FillRectangleClipped(
                         canvas,
-                        settings.RightX,
-                        settings.RightY,
-                        settings.RightWidth,
-                        settings.RightHeight,
+                        rightRegion.X,
+                        rightRegion.Y,
+                        rightRegion.Width,
+                        rightRegion.Height,
                         Scalar.Black);
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(cardKind), cardKind, "未知的1号屏图卡类型。");
+                    throw new ArgumentOutOfRangeException(nameof(cardKind), cardKind, "未知的显示器图卡类型。");
             }
 
             return canvas;
@@ -123,11 +125,9 @@ public static class ScreenOnePatternGenerator
             throw new ArgumentOutOfRangeException(nameof(settings), "为避免内存不足，画布总像素不能超过 4000 万。");
         }
 
-        if (settings.LeftWidth < 1 || settings.LeftHeight < 1 ||
-            settings.RightWidth < 1 || settings.RightHeight < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(settings), "左右区域的宽度和高度必须大于 0。");
-        }
+        // Resolve 同时检查派生尺寸为正数、long 计算和 int 绘图坐标范围。
+        _ = settings.GetLeftRegion();
+        _ = settings.GetRightRegion();
     }
 
     /// <summary>

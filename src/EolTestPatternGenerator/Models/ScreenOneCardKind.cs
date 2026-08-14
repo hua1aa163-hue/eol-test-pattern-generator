@@ -1,7 +1,7 @@
 namespace EolTestPatternGenerator.Models;
 
 /// <summary>
-/// “1号屏图卡”窗口支持的三种图卡。
+/// “显示器”页面支持的三种图卡。
 /// 枚举顺序与窗口中的图卡下拉框顺序保持一致。
 /// </summary>
 public enum ScreenOneCardKind

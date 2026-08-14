@@ -73,13 +73,7 @@ public static class PatternGenerator
         // 白框始终最后绘制，因此可覆盖内置图卡和导入的外部底图。
         if (settings.BorderOverlay.Enabled)
         {
-            DrawBorder(
-                canvas,
-                settings.BorderOverlay.X,
-                settings.BorderOverlay.Y,
-                settings.BorderOverlay.Width,
-                settings.BorderOverlay.Height,
-                settings.BorderOverlay.LineWidth);
+            BorderOverlayRenderer.Apply(canvas, settings.BorderOverlay);
         }
 
         return canvas;
@@ -196,14 +190,48 @@ public static class PatternGenerator
             throw new ArgumentOutOfRangeException(nameof(settings), "为避免内存不足，画布总像素不能超过 4000 万。");
         }
 
-        if (settings.PatternWidth < 1 || settings.PatternHeight < 1)
+        bool isFullCanvas = settings.PatternType is PatternType.Black or PatternType.FullWhite or
+            PatternType.FullRed or PatternType.FullGreen or PatternType.FullBlue or PatternType.ImportedImage;
+        if (isFullCanvas)
         {
-            throw new ArgumentOutOfRangeException(nameof(settings), "图案宽高必须大于 0。");
+            if (settings.LeftMargin != 0 || settings.TopMargin != 0 ||
+                settings.RightMargin != 0 || settings.BottomMargin != 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(settings), "全屏图卡的四边距必须固定为 0。");
+            }
+        }
+        else
+        {
+            // Resolve 以 long 计算派生宽高，并统一检查负尺寸和 int 溢出。
+            _ = settings.GetOuterRegion();
+            if (settings.IsDotGrid &&
+                (settings.CalculatedCenterSpanWidth < 0 || settings.CalculatedCenterSpanHeight < 0))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(settings),
+                    "点阵外缘区域必须至少容纳一个完整圆点直径。");
+            }
+
+            if (settings.IsDotGrid &&
+                ((settings.Columns == 1 && settings.CalculatedCenterSpanWidth != 0) ||
+                 (settings.Rows == 1 && settings.CalculatedCenterSpanHeight != 0)))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(settings),
+                    "单列点阵的水平圆心跨度、单行点阵的垂直圆心跨度必须为 0。");
+            }
         }
 
-        if (settings.Phase is < 1 or > 8)
+        if (settings.PatternType == PatternType.PhaseStripes)
         {
-            throw new ArgumentOutOfRangeException(nameof(settings), "相位必须在 1 到 8 之间。");
+            CrosstalkPixelCycle cycle = CrosstalkPixelCyclePresets.Resolve(settings);
+            ValidatePixelCycle(cycle);
+            if (settings.Phase < 1 || settings.Phase > cycle.PeriodLength)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(settings),
+                    $"相位必须在 1 到当前周期像素数 {cycle.PeriodLength} 之间。");
+            }
         }
 
         if (settings.DotRadius is < 0 or > 2048)
@@ -222,9 +250,38 @@ public static class PatternGenerator
         }
 
         BorderOverlaySettings border = settings.BorderOverlay;
-        if (border.Enabled && (border.Width < 1 || border.Height < 1 || border.LineWidth < 1))
+        if (border.Enabled)
         {
-            throw new ArgumentOutOfRangeException(nameof(settings), "白框叠加层的宽、高和线宽必须大于 0。");
+            if (border.LineWidth < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(settings), "白框叠加层线宽必须大于 0。");
+            }
+
+            _ = border.GetRegion(settings.CanvasWidth, settings.CanvasHeight);
+        }
+    }
+
+    private static void ValidatePixelCycle(CrosstalkPixelCycle cycle)
+    {
+        if (cycle.Pixels is null ||
+            cycle.Pixels.Count is < CrosstalkPixelCycle.MinimumPeriodLength or
+                > CrosstalkPixelCycle.MaximumPeriodLength)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(cycle),
+                $"串扰周期像素数必须在 {CrosstalkPixelCycle.MinimumPeriodLength} 到 " +
+                $"{CrosstalkPixelCycle.MaximumPeriodLength} 之间。");
+        }
+
+        for (int index = 0; index < cycle.Pixels.Count; index++)
+        {
+            RgbChannelMask mask = cycle.Pixels[index];
+            if ((mask & ~RgbChannelMask.All) != 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(cycle),
+                    $"串扰周期第 {index + 1} 个像素包含未知通道值 {(int)mask}。");
+            }
         }
     }
 
@@ -243,7 +300,7 @@ public static class PatternGenerator
     {
         // width/height 表示外包矩形尺寸，右边和下边是排他边界；越界由填充函数裁剪。
         int thickness = Math.Min(lineWidth, Math.Min(width, height));
-        if ((2 * thickness) >= width || (2 * thickness) >= height)
+        if ((2L * thickness) >= width || (2L * thickness) >= height)
         {
             // 线宽覆盖内部空间时退化为实心矩形，避免四条边重叠产生不一致。
             FillRectangleClipped(canvas, x, y, width, height, White);
@@ -258,10 +315,11 @@ public static class PatternGenerator
 
     private static unsafe void DrawPhaseStripes(Mat canvas, PatternSettings settings)
     {
+        CrosstalkPixelCycle cycle = CrosstalkPixelCyclePresets.Resolve(settings);
         int left = Math.Max(0, settings.PatternX);
         int top = Math.Max(0, settings.PatternY);
-        int right = Math.Min(canvas.Cols, settings.PatternX + settings.PatternWidth);
-        int bottom = Math.Min(canvas.Rows, settings.PatternY + settings.PatternHeight);
+        int right = (int)Math.Min(canvas.Cols, (long)settings.PatternX + settings.PatternWidth);
+        int bottom = (int)Math.Min(canvas.Rows, (long)settings.PatternY + settings.PatternHeight);
 
         if (right <= left || bottom <= top)
         {
@@ -276,44 +334,22 @@ public static class PatternGenerator
             for (int x = left; x < right; x++)
             {
                 int u = x - settings.PatternX;
-                // 使用局部坐标计算8步周期；正模保证裁剪到负坐标后周期仍连续。
-                int phaseIndex = PositiveModulo(v - (3 * u) + settings.Phase - 1, 8);
+                // 使用图案局部坐标计算可配置周期；long 中间值允许斜向步进使用完整 int 范围。
+                // 正模保证图案被画布裁剪到负坐标后，周期仍与未裁剪时完全连续。
+                long cyclePosition =
+                    ((long)v * cycle.RowAdvance) +
+                    ((long)u * cycle.ColumnAdvance) +
+                    settings.Phase - 1L;
+                int cycleIndex = PositiveModulo(cyclePosition, cycle.PeriodLength);
+                RgbChannelMask channels = cycle.Pixels[cycleIndex];
                 int offset = x * 3;
 
-                byte logicalR = phaseIndex is >= 0 and <= 3 ? (byte)255 : (byte)0;
-                byte logicalG = phaseIndex is >= 1 and <= 4 ? (byte)255 : (byte)0;
-                byte logicalB = phaseIndex is >= 2 and <= 5 ? (byte)255 : (byte)0;
-                (byte red, byte green, byte blue) = ApplyPixelOrder(
-                    logicalR,
-                    logicalG,
-                    logicalB,
-                    settings.PixelOrder);
-
                 // OpenCV 的内存通道顺序为 BGR。
-                row[offset] = blue;
-                row[offset + 1] = green;
-                row[offset + 2] = red;
+                row[offset] = (channels & RgbChannelMask.Blue) != 0 ? (byte)255 : (byte)0;
+                row[offset + 1] = (channels & RgbChannelMask.Green) != 0 ? (byte)255 : (byte)0;
+                row[offset + 2] = (channels & RgbChannelMask.Red) != 0 ? (byte)255 : (byte)0;
             }
         }
-    }
-
-    private static (byte Red, byte Green, byte Blue) ApplyPixelOrder(
-        byte red,
-        byte green,
-        byte blue,
-        RgbPixelOrder order)
-    {
-        // 排列仅置换三个颜色通道，不改变像素横向坐标或8步周期。
-        return order switch
-        {
-            RgbPixelOrder.RGB => (red, green, blue),
-            RgbPixelOrder.RBG => (red, blue, green),
-            RgbPixelOrder.GRB => (green, red, blue),
-            RgbPixelOrder.GBR => (green, blue, red),
-            RgbPixelOrder.BRG => (blue, red, green),
-            RgbPixelOrder.BGR => (blue, green, red),
-            _ => throw new ArgumentOutOfRangeException(nameof(order), order, null)
-        };
     }
 
     private static void DrawScreenSplit(Mat canvas, PatternSettings settings)
@@ -425,15 +461,15 @@ public static class PatternGenerator
         }
 
         // 以首末圆心跨度插值，确保最后一个圆心精确落在起点加跨度的位置。
-        return (int)Math.Round(span * index / (double)(count - 1), MidpointRounding.AwayFromZero);
+        return (int)Math.Round((long)span * index / (double)(count - 1), MidpointRounding.AwayFromZero);
     }
 
     private static void FillRectangleClipped(Mat canvas, int x, int y, int width, int height, Scalar color)
     {
         int left = Math.Max(0, x);
         int top = Math.Max(0, y);
-        int right = Math.Min(canvas.Cols, x + width);
-        int bottom = Math.Min(canvas.Rows, y + height);
+        int right = (int)Math.Min(canvas.Cols, (long)x + width);
+        int bottom = (int)Math.Min(canvas.Rows, (long)y + height);
 
         if (right <= left || bottom <= top)
         {
@@ -443,9 +479,9 @@ public static class PatternGenerator
         Cv2.Rectangle(canvas, new Rect(left, top, right - left, bottom - top), color, -1, LineTypes.Link8);
     }
 
-    private static int PositiveModulo(int value, int divisor)
+    private static int PositiveModulo(long value, int divisor)
     {
-        int remainder = value % divisor;
-        return remainder < 0 ? remainder + divisor : remainder;
+        long remainder = value % divisor;
+        return (int)(remainder < 0 ? remainder + divisor : remainder);
     }
 }

@@ -31,7 +31,7 @@ public static class ScreenOneBatchExporter
 
         if (exportOptions.Format is ImageFormatKind.Jpeg or ImageFormatKind.WebP)
         {
-            throw new InvalidOperationException("1号屏参考图必须使用 PNG、BMP 或 TIFF，才能保证 RGB 通道只有 0/255。");
+            throw new InvalidOperationException("显示器参考图必须使用 PNG、BMP 或 TIFF，才能保证 RGB 通道只有 0/255。");
         }
 
         Directory.CreateDirectory(outputDirectory);
@@ -62,7 +62,7 @@ public static class ScreenOneBatchExporter
 
         if (exportOptions.Format is ImageFormatKind.Jpeg or ImageFormatKind.WebP)
         {
-            throw new InvalidOperationException("1号屏图卡必须使用 PNG、BMP 或 TIFF，才能保证 RGB 通道只有 0/255。");
+            throw new InvalidOperationException("显示器图卡必须使用 PNG、BMP 或 TIFF，才能保证 RGB 通道只有 0/255。");
         }
 
         Directory.CreateDirectory(outputDirectory);

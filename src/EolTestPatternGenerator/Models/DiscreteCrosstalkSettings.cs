@@ -1,7 +1,7 @@
 namespace EolTestPatternGenerator.Models;
 
 /// <summary>
-/// “Lighttool Source Creator”风格离散串扰图的全部计算参数。
+/// “Lighttool Source Creator”风格离散光源图的全部计算参数。
 /// </summary>
 public sealed class DiscreteCrosstalkSettings
 {

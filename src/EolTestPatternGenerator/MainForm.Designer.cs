@@ -38,6 +38,7 @@ partial class MainForm
         numericCanvasWidth = new NumericUpDown();
         labelCanvasWidth = new Label();
         groupPlacement = new GroupBox();
+        regionMarginsEditor = new EolTestPatternGenerator.Controls.RegionMarginsEditor();
         labelPlacementHelp = new Label();
         buttonCenter = new Button();
         numericPatternHeight = new NumericUpDown();
@@ -180,7 +181,7 @@ partial class MainForm
         buttonPhaseTool.Name = "buttonPhaseTool";
         buttonPhaseTool.Size = new Size(216, 57);
         buttonPhaseTool.TabIndex = 6;
-        buttonPhaseTool.Text = "串扰图";
+        buttonPhaseTool.Text = "串扰像素排列";
         buttonPhaseTool.UseVisualStyleBackColor = true;
         buttonPhaseTool.Click += buttonPhaseTool_Click_1;
         // 
@@ -191,7 +192,7 @@ partial class MainForm
         buttonExportScreen1.Name = "buttonExportScreen1";
         buttonExportScreen1.Size = new Size(217, 57);
         buttonExportScreen1.TabIndex = 7;
-        buttonExportScreen1.Text = "显示器3D图";
+        buttonExportScreen1.Text = "显示器";
         buttonExportScreen1.UseVisualStyleBackColor = true;
         buttonExportScreen1.Click += buttonExportScreen1_Click_1;
         // 
@@ -203,7 +204,7 @@ partial class MainForm
         labelPatternHelp.Name = "labelPatternHelp";
         labelPatternHelp.Size = new Size(496, 64);
         labelPatternHelp.TabIndex = 4;
-        labelPatternHelp.Text = "外框、相移、白图使用矩形区域；点阵使用首个圆心和圆心跨度。";
+        labelPatternHelp.Text = "所有图案按最外缘四边距定义；点阵还可使用圆心坐标和圆心跨度。";
         // 
         // buttonBrowseSourceImage
         // 
@@ -238,7 +239,7 @@ partial class MainForm
         labelPhase.Name = "labelPhase";
         labelPhase.Size = new Size(88, 24);
         labelPhase.TabIndex = 2;
-        labelPhase.Text = "相位(1-8)";
+        labelPhase.Text = "兼容相位";
         labelPhase.Visible = false;
         // 
         // comboPattern
@@ -326,6 +327,7 @@ partial class MainForm
         // 
         // groupPlacement
         // 
+        groupPlacement.Controls.Add(regionMarginsEditor);
         groupPlacement.Controls.Add(labelPlacementHelp);
         groupPlacement.Controls.Add(buttonCenter);
         groupPlacement.Controls.Add(numericPatternHeight);
@@ -340,24 +342,34 @@ partial class MainForm
         groupPlacement.Margin = new Padding(4);
         groupPlacement.Name = "groupPlacement";
         groupPlacement.Padding = new Padding(4);
-        groupPlacement.Size = new Size(550, 308);
+        groupPlacement.Size = new Size(550, 500);
         groupPlacement.TabIndex = 2;
         groupPlacement.TabStop = false;
-        groupPlacement.Text = "图案位置与区域尺寸（可修改）";
+        groupPlacement.Text = "图案外缘四边距与圆心参数";
+        //
+        // regionMarginsEditor
+        //
+        regionMarginsEditor.CanvasSize = new Size(1920, 1080);
+        regionMarginsEditor.Location = new Point(27, 38);
+        regionMarginsEditor.Margin = new Padding(4);
+        regionMarginsEditor.Name = "regionMarginsEditor";
+        regionMarginsEditor.Size = new Size(496, 256);
+        regionMarginsEditor.TabIndex = 0;
+        regionMarginsEditor.MarginsChanged += regionMarginsEditor_MarginsChanged;
         // 
         // labelPlacementHelp
         // 
         labelPlacementHelp.ForeColor = Color.DimGray;
-        labelPlacementHelp.Location = new Point(27, 237);
+        labelPlacementHelp.Location = new Point(27, 436);
         labelPlacementHelp.Margin = new Padding(4, 0, 4, 0);
         labelPlacementHelp.Name = "labelPlacementHelp";
         labelPlacementHelp.Size = new Size(496, 58);
         labelPlacementHelp.TabIndex = 9;
-        labelPlacementHelp.Text = "坐标允许为负数，超出画布的部分会被安全裁剪。";
+        labelPlacementHelp.Text = "圆心坐标/跨度与上方外缘四边距双向同步。";
         // 
         // buttonCenter
         // 
-        buttonCenter.Location = new Point(369, 164);
+        buttonCenter.Location = new Point(369, 436);
         buttonCenter.Margin = new Padding(4);
         buttonCenter.Name = "buttonCenter";
         buttonCenter.Size = new Size(154, 51);
@@ -368,10 +380,10 @@ partial class MainForm
         // 
         // numericPatternHeight
         // 
-        numericPatternHeight.Location = new Point(369, 105);
+        numericPatternHeight.Location = new Point(369, 374);
         numericPatternHeight.Margin = new Padding(4);
-        numericPatternHeight.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericPatternHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+        numericPatternHeight.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericPatternHeight.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
         numericPatternHeight.Name = "numericPatternHeight";
         numericPatternHeight.Size = new Size(154, 30);
         numericPatternHeight.TabIndex = 7;
@@ -382,19 +394,19 @@ partial class MainForm
         // labelPatternHeight
         // 
         labelPatternHeight.AutoSize = true;
-        labelPatternHeight.Location = new Point(288, 111);
+        labelPatternHeight.Location = new Point(267, 380);
         labelPatternHeight.Margin = new Padding(4, 0, 4, 0);
         labelPatternHeight.Name = "labelPatternHeight";
         labelPatternHeight.Size = new Size(46, 24);
         labelPatternHeight.TabIndex = 6;
-        labelPatternHeight.Text = "高度";
+        labelPatternHeight.Text = "圆心 Y 跨度";
         // 
         // numericPatternWidth
         // 
-        numericPatternWidth.Location = new Point(108, 105);
+        numericPatternWidth.Location = new Point(108, 374);
         numericPatternWidth.Margin = new Padding(4);
-        numericPatternWidth.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericPatternWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+        numericPatternWidth.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericPatternWidth.Minimum = new decimal(new int[] { 0, 0, 0, 0 });
         numericPatternWidth.Name = "numericPatternWidth";
         numericPatternWidth.Size = new Size(154, 30);
         numericPatternWidth.TabIndex = 5;
@@ -405,19 +417,19 @@ partial class MainForm
         // labelPatternWidth
         // 
         labelPatternWidth.AutoSize = true;
-        labelPatternWidth.Location = new Point(27, 111);
+        labelPatternWidth.Location = new Point(27, 380);
         labelPatternWidth.Margin = new Padding(4, 0, 4, 0);
         labelPatternWidth.Name = "labelPatternWidth";
         labelPatternWidth.Size = new Size(46, 24);
         labelPatternWidth.TabIndex = 4;
-        labelPatternWidth.Text = "宽度";
+        labelPatternWidth.Text = "圆心 X 跨度";
         // 
         // numericPatternY
         // 
-        numericPatternY.Location = new Point(369, 46);
+        numericPatternY.Location = new Point(369, 315);
         numericPatternY.Margin = new Padding(4);
-        numericPatternY.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericPatternY.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
+        numericPatternY.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericPatternY.Minimum = new decimal(new int[] { int.MinValue, 0, 0, int.MinValue });
         numericPatternY.Name = "numericPatternY";
         numericPatternY.Size = new Size(154, 30);
         numericPatternY.TabIndex = 3;
@@ -427,19 +439,19 @@ partial class MainForm
         // labelPatternY
         // 
         labelPatternY.AutoSize = true;
-        labelPatternY.Location = new Point(288, 52);
+        labelPatternY.Location = new Point(288, 321);
         labelPatternY.Margin = new Padding(4, 0, 4, 0);
         labelPatternY.Name = "labelPatternY";
         labelPatternY.Size = new Size(21, 24);
         labelPatternY.TabIndex = 2;
-        labelPatternY.Text = "Y";
+        labelPatternY.Text = "首圆心 Y";
         // 
         // numericPatternX
         // 
-        numericPatternX.Location = new Point(108, 46);
+        numericPatternX.Location = new Point(108, 315);
         numericPatternX.Margin = new Padding(4);
-        numericPatternX.Maximum = new decimal(new int[] { 32768, 0, 0, 0 });
-        numericPatternX.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
+        numericPatternX.Maximum = new decimal(new int[] { int.MaxValue, 0, 0, 0 });
+        numericPatternX.Minimum = new decimal(new int[] { int.MinValue, 0, 0, int.MinValue });
         numericPatternX.Name = "numericPatternX";
         numericPatternX.Size = new Size(154, 30);
         numericPatternX.TabIndex = 1;
@@ -449,12 +461,12 @@ partial class MainForm
         // labelPatternX
         // 
         labelPatternX.AutoSize = true;
-        labelPatternX.Location = new Point(27, 52);
+        labelPatternX.Location = new Point(27, 321);
         labelPatternX.Margin = new Padding(4, 0, 4, 0);
         labelPatternX.Name = "labelPatternX";
         labelPatternX.Size = new Size(22, 24);
         labelPatternX.TabIndex = 0;
-        labelPatternX.Text = "X";
+        labelPatternX.Text = "首圆心 X";
         // 
         // groupShape
         // 
@@ -685,7 +697,7 @@ partial class MainForm
         buttonBatchExport.Name = "buttonBatchExport";
         buttonBatchExport.Size = new Size(236, 57);
         buttonBatchExport.TabIndex = 3;
-        buttonBatchExport.Text = "批量导出主图 10 张";
+        buttonBatchExport.Text = "批量导出基础图 10 张";
         buttonBatchExport.UseVisualStyleBackColor = true;
         buttonBatchExport.Click += buttonBatchExport_Click;
         // 
@@ -858,6 +870,7 @@ partial class MainForm
     private NumericUpDown numericCanvasWidth;
     private Label labelCanvasWidth;
     private GroupBox groupPlacement;
+    private EolTestPatternGenerator.Controls.RegionMarginsEditor regionMarginsEditor;
     private Label labelPlacementHelp;
     private Button buttonCenter;
     private NumericUpDown numericPatternHeight;
