@@ -79,16 +79,19 @@ internal static class Program
                 RowAdvance = int.MinValue
             });
             CrosstalkPixelCycle clampedCycle = cycleEditor.GetCycle();
-            if (clampedCycle.ColumnAdvance != 4096 || clampedCycle.RowAdvance != -4096)
+            if (clampedCycle.ColumnAdvance != 4096 ||
+                clampedCycle.RowAdvance != -172 ||
+                clampedCycle.ResolveTiltAngleDegrees() != -89.0d)
             {
                 throw new InvalidOperationException(
-                    "串扰周期编辑器未将越界步进同步裁剪到界面可表示范围。");
+                    "串扰周期编辑器未将越界步进/倾斜角同步裁剪到界面可表示范围。");
             }
 
             // Show 会触发与真实运行一致的 OnLoad；立即隐藏，自动验证三个窗体及 OpenCV 预览。
             ShowAndHide(mainForm);
             VerifyMainDotSingleAxisSynchronization(mainForm);
             ShowAndHide(phaseStripeForm);
+            VerifyPhaseStripeResetDefaults(phaseStripeForm);
             ShowAndHide(screenOneForm);
             ShowAndHide(nonIntegerFusionForm);
             ShowAndHide(stillVideoHost);
@@ -105,7 +108,7 @@ internal static class Program
                 throw new InvalidOperationException("新建页面被错误识别为正在导出，工作台两阶段关闭检查无效。");
             }
 
-            ShowAndHide(workspaceForm);
+            VerifyWorkspaceNavigationMapping(workspaceForm);
             Console.WriteLine("WinForms 界面构造自检通过。");
             return 0;
         }
@@ -140,6 +143,173 @@ internal static class Program
         form.Show();
         Application.DoEvents();
         form.Hide();
+    }
+
+    /// <summary>实际点击 Designer 恢复按钮，确认它不依赖其他页面参数并会立即恢复完整默认值。</summary>
+    private static void VerifyPhaseStripeResetDefaults(PhaseStripeForm form)
+    {
+        form.Show();
+        Application.DoEvents();
+
+        NumericUpDown canvasWidth = FindRequiredControl<NumericUpDown>(form, "numericCanvasWidth");
+        NumericUpDown phase = FindRequiredControl<NumericUpDown>(form, "numericPhase");
+        NumericUpDown quality = FindRequiredControl<NumericUpDown>(form, "numericQuality");
+        ComboBox format = FindRequiredControl<ComboBox>(form, "comboOutputFormat");
+        RegionMarginsEditor margins = FindRequiredControl<RegionMarginsEditor>(form, "regionMarginsEditor");
+        CrosstalkCycleEditor cycle = FindRequiredControl<CrosstalkCycleEditor>(form, "cycleEditor");
+        BorderOverlayEditor border = FindRequiredControl<BorderOverlayEditor>(form, "borderOverlayEditor");
+        ImagePreviewControl preview = FindRequiredControl<ImagePreviewControl>(form, "previewControl");
+        Button reset = FindRequiredControl<Button>(form, "buttonResetDefaults");
+
+        canvasWidth.Value = 800;
+        margins.CanvasSize = new Size(800, 1080);
+        margins.SetMargins(new RegionMargins(2, 3, 4, 5));
+        cycle.SetCycle(new CrosstalkPixelCycle
+        {
+            Pixels = [RgbChannelMask.Blue, RgbChannelMask.None],
+            ColumnAdvance = 2,
+            RowAdvance = 0,
+            TiltAngleDegrees = 10.125d
+        });
+        phase.Maximum = 2;
+        phase.Value = 2;
+        border.SetSettings(new BorderOverlaySettings { Enabled = true, LineWidth = 9 });
+        format.SelectedIndex = (int)ImageFormatKind.Bmp;
+        quality.Value = 42;
+        preview.ShowCenterCrosshair = false;
+        preview.ShowPixelCoordinates = false;
+
+        reset.PerformClick();
+        Application.DoEvents();
+
+        RegionMargins restoredMargins = margins.GetMargins();
+        CrosstalkPixelCycle restoredCycle = cycle.GetCycle();
+        BorderOverlaySettings restoredBorder = border.GetSettings();
+        if (canvasWidth.Value != 1920 ||
+            FindRequiredControl<NumericUpDown>(form, "numericCanvasHeight").Value != 1080 ||
+            restoredMargins.Left != 71 || restoredMargins.Top != 226 ||
+            restoredMargins.Right != 72 || restoredMargins.Bottom != 227 ||
+            phase.Value != 1 || restoredCycle.PeriodLength != 8 ||
+            restoredCycle.ResolveTiltAngleDegrees() != CrosstalkPixelCycle.DefaultTiltAngleDegrees ||
+            !CrosstalkPixelCyclePresets.TryGetLegacyOrder(restoredCycle, out RgbPixelOrder order) ||
+            order != RgbPixelOrder.RGB || restoredBorder.Enabled || restoredBorder.LineWidth != 5 ||
+            format.SelectedIndex != (int)ImageFormatKind.Png || quality.Value != 95 ||
+            !preview.ShowCenterCrosshair || !preview.ShowPixelCoordinates)
+        {
+            throw new InvalidOperationException("串扰页面的恢复默认按钮未恢复最初版完整参数。");
+        }
+
+        form.Hide();
+    }
+
+    /// <summary>
+    /// 逐项切换工作台导航，验证调整显示顺序后每个项目仍指向正确的 Designer 页面，
+    /// 并验证旧 v2 序号只在稳定页面标识缺失时迁移一次。
+    /// </summary>
+    private static void VerifyWorkspaceNavigationMapping(WorkspaceForm form)
+    {
+        var expectedTitles = new[]
+        {
+            "基础图卡",
+            "3D显示器图卡",
+            "串扰像素排列",
+            "非整数连续融合",
+            "离散光源",
+            "图片转 LightTools",
+            "图片转视频"
+        };
+        Type[] expectedPageTypes =
+        [
+            typeof(MainForm),
+            typeof(ScreenOneForm),
+            typeof(PhaseStripeForm),
+            typeof(NonIntegerFusionForm),
+            typeof(NonIntegerFusionForm),
+            typeof(NonIntegerFusionForm),
+            typeof(StillVideoPage)
+        ];
+        string[] expectedPageIds =
+        [
+            WorkspaceNavigationPages.BasicPatterns,
+            WorkspaceNavigationPages.DisplayCards,
+            WorkspaceNavigationPages.CrosstalkPixels,
+            WorkspaceNavigationPages.ContinuousFusion,
+            WorkspaceNavigationPages.DiscreteLightSource,
+            WorkspaceNavigationPages.ImageToLightTools,
+            WorkspaceNavigationPages.ImageToVideo
+        ];
+
+        // 旧 v2 只保存序号，旧 1/2 分别是串扰/显示器；新配置用稳定标识消除二次交换。
+        var legacyCrosstalk = new WorkspacePreferences { SelectedNavigationIndex = 1 };
+        var legacyDisplay = new WorkspacePreferences { SelectedNavigationIndex = 2 };
+        var migratedCrosstalk = new WorkspacePreferences
+        {
+            SelectedNavigationIndex = 2,
+            SelectedNavigationPageId = WorkspaceNavigationPages.CrosstalkPixels
+        };
+        var migratedDisplay = new WorkspacePreferences
+        {
+            SelectedNavigationIndex = 1,
+            SelectedNavigationPageId = WorkspaceNavigationPages.DisplayCards
+        };
+        if (WorkspaceNavigationPages.ResolveSelectedIndex(legacyCrosstalk, expectedTitles.Length) != 2 ||
+            WorkspaceNavigationPages.ResolveSelectedIndex(legacyDisplay, expectedTitles.Length) != 1 ||
+            WorkspaceNavigationPages.ResolveSelectedIndex(migratedCrosstalk, expectedTitles.Length) != 2 ||
+            WorkspaceNavigationPages.ResolveSelectedIndex(migratedDisplay, expectedTitles.Length) != 1 ||
+            Enumerable.Range(0, expectedPageIds.Length)
+                .Any(index => WorkspaceNavigationPages.GetPageId(index) != expectedPageIds[index]))
+        {
+            throw new InvalidOperationException("工作台旧导航序号没有可靠迁移到稳定页面标识。");
+        }
+
+        form.ShowInTaskbar = false;
+        form.Opacity = 0;
+        form.Show();
+        Application.DoEvents();
+
+        try
+        {
+            ListBox navigation = FindRequiredControl<ListBox>(form, "listNavigation");
+            Panel pageHost = FindRequiredControl<Panel>(form, "pageHost");
+            Label pageTitle = FindRequiredControl<Label>(form, "labelPageTitle");
+            int originalIndex = navigation.SelectedIndex;
+
+            if (!navigation.Items.Cast<object>().Select(item => item?.ToString()).SequenceEqual(expectedTitles))
+            {
+                throw new InvalidOperationException("工作台左侧导航顺序与约定不一致。");
+            }
+
+            for (int index = 0; index < expectedTitles.Length; index++)
+            {
+                navigation.SelectedIndex = index;
+                Application.DoEvents();
+
+                Control activePage = pageHost.Controls.Cast<Control>().Single(control => control.Visible);
+                if (activePage.GetType() != expectedPageTypes[index] ||
+                    !string.Equals(pageTitle.Text, expectedTitles[index], StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"工作台导航“{expectedTitles[index]}”打开了错误的功能页。");
+                }
+
+                if (index is >= 3 and <= 5)
+                {
+                    TabControl sections = FindRequiredControl<TabControl>(activePage, "tabModes");
+                    if (sections.SelectedIndex != index - 3)
+                    {
+                        throw new InvalidOperationException(
+                            $"工作台导航“{expectedTitles[index]}”定位到了错误的内部功能区。");
+                    }
+                }
+            }
+
+            navigation.SelectedIndex = originalIndex;
+            Application.DoEvents();
+        }
+        finally
+        {
+            form.Hide();
+        }
     }
 
     /// <summary>

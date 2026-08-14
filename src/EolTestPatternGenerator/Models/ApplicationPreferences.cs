@@ -68,20 +68,29 @@ public sealed class ApplicationPreferences
 /// <summary>统一工作台自身的界面状态。</summary>
 public sealed class WorkspacePreferences
 {
-    /// <summary>左侧导航上次选中的页；窗体加载时会按实际页数安全截断。</summary>
+    /// <summary>
+    /// 左侧导航上次选中页的旧序号兼容字段。新配置同时保存稳定页面标识；
+    /// 窗体加载时会按实际页数安全截断。
+    /// </summary>
     public int SelectedNavigationIndex { get; set; }
+
+    /// <summary>
+    /// 左侧导航上次选中页的稳定标识。空字符串表示尚未从旧序号迁移。
+    /// </summary>
+    public string SelectedNavigationPageId { get; set; } = string.Empty;
 
     public WorkspacePreferences Clone()
     {
         return new WorkspacePreferences
         {
-            SelectedNavigationIndex = SelectedNavigationIndex
+            SelectedNavigationIndex = SelectedNavigationIndex,
+            SelectedNavigationPageId = SelectedNavigationPageId ?? string.Empty
         };
     }
 
     internal void RestoreMissingSections()
     {
-        // 当前只有值类型字段；保留入口供以后添加工作台字符串或集合设置。
+        SelectedNavigationPageId ??= string.Empty;
     }
 }
 
@@ -187,6 +196,22 @@ public sealed class PhaseStripePreferences
 
     public PreviewOverlayPreferences PreviewOverlay { get; set; } = new();
 
+    /// <summary>
+    /// 创建最初版串扰图卡的完整默认参数。恢复默认按钮只使用此快照，
+    /// 不会从基础图卡或其他页面当前输入中复制数值。
+    /// </summary>
+    public static PhaseStripePreferences CreateReferenceDefault()
+    {
+        return new PhaseStripePreferences
+        {
+            Settings = EolTestPatternGenerator.Services.PatternPresets.Create(PatternType.PhaseStripes),
+            OutputFormat = ImageFormatKind.Png,
+            Quality = 95,
+            LastExportDirectory = string.Empty,
+            PreviewOverlay = new PreviewOverlayPreferences()
+        };
+    }
+
     public PhaseStripePreferences Clone()
     {
         return new PhaseStripePreferences
@@ -212,10 +237,7 @@ public sealed class PhaseStripePreferences
 
     private static PatternSettings CreateDefaultSettings()
     {
-        return new PatternSettings
-        {
-            PatternType = PatternType.PhaseStripes
-        };
+        return EolTestPatternGenerator.Services.PatternPresets.Create(PatternType.PhaseStripes);
     }
 }
 

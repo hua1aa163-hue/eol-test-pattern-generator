@@ -57,7 +57,7 @@ partial class WorkspaceForm
         listNavigation.FormattingEnabled = true;
         listNavigation.IntegralHeight = false;
         listNavigation.ItemHeight = 30;
-        listNavigation.Items.AddRange(new object[] { "基础图卡", "串扰像素排列", "3D显示器图卡", "非整数连续融合", "离散光源", "图片转 LightTools", "图片转视频" });
+        listNavigation.Items.AddRange(new object[] { "基础图卡", "3D显示器图卡", "串扰像素排列", "非整数连续融合", "离散光源", "图片转 LightTools", "图片转视频" });
         listNavigation.Location = new Point(18, 135);
         listNavigation.Name = "listNavigation";
         listNavigation.Size = new Size(249, 961);

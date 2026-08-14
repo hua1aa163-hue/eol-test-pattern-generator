@@ -44,6 +44,7 @@ partial class PhaseStripeForm
         comboOutputFormat = new ComboBox();
         labelOutputFormat = new Label();
         groupActions = new GroupBox();
+        buttonResetDefaults = new Button();
         buttonNonIntegerFusion = new Button();
         buttonBatchExport = new Button();
         buttonSaveCurrent = new Button();
@@ -322,7 +323,8 @@ partial class PhaseStripeForm
         labelOutputFormat.Text = "图片格式";
         // 
         // groupActions
-        // 
+        //
+        groupActions.Controls.Add(buttonResetDefaults);
         groupActions.Controls.Add(buttonNonIntegerFusion);
         groupActions.Controls.Add(buttonBatchExport);
         groupActions.Controls.Add(buttonSaveCurrent);
@@ -331,18 +333,29 @@ partial class PhaseStripeForm
         groupActions.Margin = new Padding(4, 4, 4, 4);
         groupActions.Name = "groupActions";
         groupActions.Padding = new Padding(4, 4, 4, 4);
-        groupActions.Size = new Size(550, 243);
+        groupActions.Size = new Size(550, 308);
         groupActions.TabIndex = 5;
         groupActions.TabStop = false;
         groupActions.Text = "生成与保存";
+        //
+        // buttonResetDefaults
+        //
+        buttonResetDefaults.Location = new Point(27, 169);
+        buttonResetDefaults.Margin = new Padding(4, 4, 4, 4);
+        buttonResetDefaults.Name = "buttonResetDefaults";
+        buttonResetDefaults.Size = new Size(496, 51);
+        buttonResetDefaults.TabIndex = 3;
+        buttonResetDefaults.Text = "恢复最初版默认参数";
+        buttonResetDefaults.UseVisualStyleBackColor = true;
+        buttonResetDefaults.Click += buttonResetDefaults_Click;
         // 
         // buttonNonIntegerFusion
         // 
-        buttonNonIntegerFusion.Location = new Point(27, 169);
+        buttonNonIntegerFusion.Location = new Point(27, 234);
         buttonNonIntegerFusion.Margin = new Padding(4, 4, 4, 4);
         buttonNonIntegerFusion.Name = "buttonNonIntegerFusion";
         buttonNonIntegerFusion.Size = new Size(496, 51);
-        buttonNonIntegerFusion.TabIndex = 3;
+        buttonNonIntegerFusion.TabIndex = 4;
         buttonNonIntegerFusion.Text = "非整数融合与 LightTools（C#）...";
         buttonNonIntegerFusion.UseVisualStyleBackColor = true;
         buttonNonIntegerFusion.Click += buttonNonIntegerFusion_Click;
@@ -518,6 +531,7 @@ partial class PhaseStripeForm
     private ComboBox comboOutputFormat;
     private Label labelOutputFormat;
     private GroupBox groupActions;
+    private Button buttonResetDefaults;
     private Button buttonNonIntegerFusion;
     private Button buttonBatchExport;
     private Button buttonSaveCurrent;

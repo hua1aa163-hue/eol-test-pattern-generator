@@ -29,7 +29,7 @@ public partial class PhaseStripeForm : Form
     public void ConfigureAsWorkspacePage()
     {
         buttonNonIntegerFusion.Visible = false;
-        groupActions.Height = 176;
+        groupActions.Height = 243;
         Text = "串扰像素排列";
     }
 
@@ -75,7 +75,9 @@ public partial class PhaseStripeForm : Form
 
         toolTip.SetToolTip(numericCanvasWidth, "最终导出图像的像素宽度。");
         toolTip.SetToolTip(numericCanvasHeight, "最终导出图像的像素高度。");
-        toolTip.SetToolTip(cycleEditor, "设置周期像素数，并为每个周期位置选择点亮的 R/G/B 通道。");
+        toolTip.SetToolTip(
+            cycleEditor,
+            "设置周期像素数、逐像素 R/G/B 通道及倾斜角；每行位移为 3 × tan(倾斜角)。横向步进不为 -3 时，视觉斜率也会随之变化。");
         toolTip.SetToolTip(buttonBatchExport, "使用当前周期依次生成全部相位，文件名为相位序号。");
         toolTip.SetToolTip(previewControl, "鼠标滚轮缩放；按住鼠标左键拖动图像。");
 
@@ -221,6 +223,36 @@ public partial class PhaseStripeForm : Form
         UpdatePreview(resetView: false);
     }
 
+    /// <summary>
+    /// 只恢复串扰页面最初版的参数快照，不读取基础图卡或其他子页面的当前值。
+    /// 上次导出目录仍然保留，避免“恢复参数”意外清除用户的文件夹记忆。
+    /// </summary>
+    private void buttonResetDefaults_Click(object? sender, EventArgs e)
+    {
+        PhaseStripePreferences defaults = PhaseStripePreferences.CreateReferenceDefault();
+
+        _updatingControls = true;
+        try
+        {
+            WriteSettings(defaults.Settings);
+            comboOutputFormat.SelectedIndex = (int)defaults.OutputFormat;
+            SetNumericValue(numericQuality, defaults.Quality);
+            previewControl.ShowCenterCrosshair = defaults.PreviewOverlay.ShowCenterCrosshair;
+            previewControl.ShowPixelCoordinates = defaults.PreviewOverlay.ShowPixelCoordinates;
+            UpdateBorderCanvasSize();
+        }
+        finally
+        {
+            _updatingControls = false;
+        }
+
+        UpdateControlAvailability();
+        if (UpdatePreview(resetView: true))
+        {
+            statusLabel.Text = "已恢复最初版串扰参数（1920 × 1080、旧版 RGB 8 像素周期、18.435°）。";
+        }
+    }
+
     private void regionMarginsEditor_MarginsChanged(object? sender, EventArgs e)
     {
         if (!_updatingControls)
@@ -234,11 +266,11 @@ public partial class PhaseStripeForm : Form
         control.Value = Math.Min(control.Maximum, Math.Max(control.Minimum, value));
     }
 
-    private void UpdatePreview(bool resetView)
+    private bool UpdatePreview(bool resetView)
     {
         if (_isRendering || IsDisposed)
         {
-            return;
+            return false;
         }
 
         _isRendering = true;
@@ -248,18 +280,22 @@ public partial class PhaseStripeForm : Form
         try
         {
             PatternSettings settings = ReadSettings();
+            double tiltAngle = settings.PixelCycle!.ResolveTiltAngleDegrees();
             using var image = PatternGenerator.Generate(settings);
             Bitmap bitmap = MatBitmapConverter.ToBitmap(image);
             previewControl.SetImage(bitmap, preserveView: !resetView);
 
             labelPreviewInfo.Text =
-                $"预览：{settings.CanvasWidth:N0} × {settings.CanvasHeight:N0} | 相位 {settings.Phase}/{cycleEditor.PeriodLength}";
+                $"预览：{settings.CanvasWidth:N0} × {settings.CanvasHeight:N0} | " +
+                $"相位 {settings.Phase}/{cycleEditor.PeriodLength} | 倾斜角 {tiltAngle:0.######}°";
             statusLabel.Text =
                 $"就绪 | 周期 {cycleEditor.PeriodLength} 像素 | 图案 {settings.CalculatedOuterWidth:N0} × {settings.CalculatedOuterHeight:N0}";
+            return true;
         }
         catch (Exception exception)
         {
             statusLabel.Text = $"预览失败：{exception.Message}";
+            return false;
         }
         finally
         {

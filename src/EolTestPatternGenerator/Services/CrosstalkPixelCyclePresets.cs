@@ -27,7 +27,8 @@ public static class CrosstalkPixelCyclePresets
         {
             Pixels = LegacyRgbPixels.Select(mask => Permute(mask, order)).ToList(),
             ColumnAdvance = -3,
-            RowAdvance = 1
+            RowAdvance = 1,
+            TiltAngleDegrees = CrosstalkPixelCycle.DefaultTiltAngleDegrees
         };
     }
 
@@ -39,7 +40,7 @@ public static class CrosstalkPixelCyclePresets
     {
         if (cycle is not null &&
             cycle.ColumnAdvance == -3 &&
-            cycle.RowAdvance == 1 &&
+            IsLegacyTilt(cycle) &&
             cycle.Pixels is not null &&
             cycle.Pixels.Count == LegacyRgbPixels.Length)
         {
@@ -118,6 +119,18 @@ public static class CrosstalkPixelCyclePresets
         if (!Enum.IsDefined(order))
         {
             throw new ArgumentOutOfRangeException(nameof(order), order, null);
+        }
+    }
+
+    private static bool IsLegacyTilt(CrosstalkPixelCycle cycle)
+    {
+        try
+        {
+            return cycle.CalculateEffectiveRowAdvance() == 1.0d;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return false;
         }
     }
 }

@@ -26,8 +26,8 @@ partial class CrosstalkCycleEditor
         numericPeriodLength = new NumericUpDown();
         labelColumnAdvance = new Label();
         numericColumnAdvance = new NumericUpDown();
-        labelRowAdvance = new Label();
-        numericRowAdvance = new NumericUpDown();
+        labelTiltAngle = new Label();
+        numericTiltAngle = new NumericUpDown();
         gridCycle = new DataGridView();
         columnIndex = new DataGridViewTextBoxColumn();
         columnRed = new DataGridViewCheckBoxColumn();
@@ -36,7 +36,7 @@ partial class CrosstalkCycleEditor
         labelHelp = new Label();
         ((System.ComponentModel.ISupportInitialize)numericPeriodLength).BeginInit();
         ((System.ComponentModel.ISupportInitialize)numericColumnAdvance).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)numericRowAdvance).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)numericTiltAngle).BeginInit();
         ((System.ComponentModel.ISupportInitialize)gridCycle).BeginInit();
         SuspendLayout();
         //
@@ -63,11 +63,11 @@ partial class CrosstalkCycleEditor
         // labelPeriodLength
         //
         labelPeriodLength.AutoSize = true;
-        labelPeriodLength.Location = new Point(207, 8);
+        labelPeriodLength.Location = new Point(201, 8);
         labelPeriodLength.Name = "labelPeriodLength";
-        labelPeriodLength.Size = new Size(81, 20);
+        labelPeriodLength.Size = new Size(64, 20);
         labelPeriodLength.TabIndex = 2;
-        labelPeriodLength.Text = "周期像素";
+        labelPeriodLength.Text = "周期(px)";
         //
         // numericPeriodLength
         //
@@ -100,25 +100,27 @@ partial class CrosstalkCycleEditor
         numericColumnAdvance.Value = new decimal(new int[] { 3, 0, 0, int.MinValue });
         numericColumnAdvance.ValueChanged += numericAdvance_ValueChanged;
         //
-        // labelRowAdvance
+        // labelTiltAngle
         //
-        labelRowAdvance.AutoSize = true;
-        labelRowAdvance.Location = new Point(170, 48);
-        labelRowAdvance.Name = "labelRowAdvance";
-        labelRowAdvance.Size = new Size(68, 20);
-        labelRowAdvance.TabIndex = 6;
-        labelRowAdvance.Text = "纵向步进";
+        labelTiltAngle.AutoSize = true;
+        labelTiltAngle.Location = new Point(162, 48);
+        labelTiltAngle.Name = "labelTiltAngle";
+        labelTiltAngle.Size = new Size(83, 20);
+        labelTiltAngle.TabIndex = 6;
+        labelTiltAngle.Text = "倾斜角(°)";
         //
-        // numericRowAdvance
+        // numericTiltAngle
         //
-        numericRowAdvance.Location = new Point(256, 44);
-        numericRowAdvance.Maximum = new decimal(new int[] { 4096, 0, 0, 0 });
-        numericRowAdvance.Minimum = new decimal(new int[] { 4096, 0, 0, int.MinValue });
-        numericRowAdvance.Name = "numericRowAdvance";
-        numericRowAdvance.Size = new Size(68, 27);
-        numericRowAdvance.TabIndex = 7;
-        numericRowAdvance.Value = new decimal(new int[] { 1, 0, 0, 0 });
-        numericRowAdvance.ValueChanged += numericAdvance_ValueChanged;
+        numericTiltAngle.DecimalPlaces = 6;
+        numericTiltAngle.Increment = new decimal(new int[] { 1, 0, 0, 196608 });
+        numericTiltAngle.Location = new Point(249, 44);
+        numericTiltAngle.Maximum = new decimal(new int[] { 89, 0, 0, 0 });
+        numericTiltAngle.Minimum = new decimal(new int[] { 89, 0, 0, int.MinValue });
+        numericTiltAngle.Name = "numericTiltAngle";
+        numericTiltAngle.Size = new Size(84, 27);
+        numericTiltAngle.TabIndex = 7;
+        numericTiltAngle.Value = new decimal(new int[] { 18435, 0, 0, 196608 });
+        numericTiltAngle.ValueChanged += numericAdvance_ValueChanged;
         //
         // gridCycle
         //
@@ -178,7 +180,7 @@ partial class CrosstalkCycleEditor
         labelHelp.Name = "labelHelp";
         labelHelp.Size = new Size(331, 48);
         labelHelp.TabIndex = 9;
-        labelHelp.Text = "每行代表周期内一个像素，可同时勾选多个通道；未勾选时该像素为全黑。所有通道只写入 0 或 255。";
+        labelHelp.Text = "通道未选=0、选中=255；每行位移=3×tan(倾角)。横向步进不为 -3 时，视觉斜率也会变化。";
         //
         // CrosstalkCycleEditor
         //
@@ -186,8 +188,8 @@ partial class CrosstalkCycleEditor
         AutoScaleMode = AutoScaleMode.Dpi;
         Controls.Add(labelHelp);
         Controls.Add(gridCycle);
-        Controls.Add(numericRowAdvance);
-        Controls.Add(labelRowAdvance);
+        Controls.Add(numericTiltAngle);
+        Controls.Add(labelTiltAngle);
         Controls.Add(numericColumnAdvance);
         Controls.Add(labelColumnAdvance);
         Controls.Add(numericPeriodLength);
@@ -198,7 +200,7 @@ partial class CrosstalkCycleEditor
         Size = new Size(335, 378);
         ((System.ComponentModel.ISupportInitialize)numericPeriodLength).EndInit();
         ((System.ComponentModel.ISupportInitialize)numericColumnAdvance).EndInit();
-        ((System.ComponentModel.ISupportInitialize)numericRowAdvance).EndInit();
+        ((System.ComponentModel.ISupportInitialize)numericTiltAngle).EndInit();
         ((System.ComponentModel.ISupportInitialize)gridCycle).EndInit();
         ResumeLayout(false);
         PerformLayout();
@@ -212,8 +214,8 @@ partial class CrosstalkCycleEditor
     private NumericUpDown numericPeriodLength;
     private Label labelColumnAdvance;
     private NumericUpDown numericColumnAdvance;
-    private Label labelRowAdvance;
-    private NumericUpDown numericRowAdvance;
+    private Label labelTiltAngle;
+    private NumericUpDown numericTiltAngle;
     private DataGridView gridCycle;
     private DataGridViewTextBoxColumn columnIndex;
     private DataGridViewCheckBoxColumn columnRed;

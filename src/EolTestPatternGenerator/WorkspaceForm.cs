@@ -29,7 +29,10 @@ public partial class WorkspaceForm : Form
         }
 
         UserSettingsStore settingsStore = UserSettingsStore.Shared;
-        int savedIndex = settingsStore.Load().Workspace.SelectedNavigationIndex;
+        WorkspacePreferences workspacePreferences = settingsStore.Load().Workspace;
+        int savedIndex = WorkspaceNavigationPages.ResolveSelectedIndex(
+            workspacePreferences,
+            listNavigation.Items.Count);
         if (!_settingsLoadWarningShown && settingsStore.LastLoadError is Exception loadError)
         {
             _settingsLoadWarningShown = true;
@@ -45,9 +48,7 @@ public partial class WorkspaceForm : Form
                 MessageBoxIcon.Warning);
         }
 
-        listNavigation.SelectedIndex = listNavigation.Items.Count == 0
-            ? -1
-            : Math.Clamp(savedIndex, 0, listNavigation.Items.Count - 1);
+        listNavigation.SelectedIndex = savedIndex;
     }
 
     private static bool IsInDesignMode() =>
@@ -102,8 +103,8 @@ public partial class WorkspaceForm : Form
         Control page = pageIndex switch
         {
             0 => CreateEmbeddedForm(new MainForm(), form => form.ConfigureAsWorkspacePage()),
-            1 => CreateEmbeddedForm(new PhaseStripeForm(), form => form.ConfigureAsWorkspacePage()),
-            2 => CreateEmbeddedForm(new ScreenOneForm(), form => form.ConfigureAsWorkspacePage()),
+            1 => CreateEmbeddedForm(new ScreenOneForm(), form => form.ConfigureAsWorkspacePage()),
+            2 => CreateEmbeddedForm(new PhaseStripeForm(), form => form.ConfigureAsWorkspacePage()),
             >= 3 and <= 5 => GetOrCreateNonIntegerPage(),
             6 => new StillVideoPage { Dock = DockStyle.Fill },
             _ => throw new ArgumentOutOfRangeException(nameof(pageIndex))
@@ -158,8 +159,8 @@ public partial class WorkspaceForm : Form
     private static string GetPageDescription(int pageIndex) => pageIndex switch
     {
         0 => "基础图卡、纯色图、导入图片及白框叠加",
-        1 => "按周期配置每个像素点亮的 R/G/B 通道",
-        2 => "3D显示器图卡左右区域及三张参考图卡",
+        1 => "3D显示器图卡左右区域及三张参考图卡",
+        2 => "按周期配置每个像素点亮的 R/G/B 通道",
         3 => "MATLAB 兼容的非整数覆盖率融合",
         4 => "离散光源图、分组图片及 LightTools 光源文件",
         5 => "将任意图片转换为单文件或 R/G/B 光源文件",
@@ -256,6 +257,8 @@ public partial class WorkspaceForm : Form
                 {
                     preferences.Workspace ??= new WorkspacePreferences();
                     preferences.Workspace.SelectedNavigationIndex = selectedIndex;
+                    preferences.Workspace.SelectedNavigationPageId =
+                        WorkspaceNavigationPages.GetPageId(selectedIndex);
                 },
                 out Exception? error))
         {

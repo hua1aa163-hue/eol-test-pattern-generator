@@ -23,6 +23,7 @@ public static class GeneratedPatternVerifier
         VerifyScreenOneTwoDimensionalPatterns();
         VerifyAdjustableScreenOnePatterns();
         VerifyRgbPixelOrders();
+        VerifyCrosstalkTiltAndReferenceDefaults();
         VerifyImportedImageBorderOverlay();
         VerifyPreviewCoordinateTransform();
         VerifyNonIntegerContinuousFusion();
@@ -849,6 +850,126 @@ public static class GeneratedPatternVerifier
         return settings;
     }
 
+    /// <summary>
+    /// 验证默认角度仍等价于最初版整数行位移、非整数角度可稳定改变图案，
+    /// 并锁定“恢复最初版默认参数”按钮使用的完整快照。
+    /// </summary>
+    private static void VerifyCrosstalkTiltAndReferenceDefaults()
+    {
+        CrosstalkPixelCycle angleDefault =
+            CrosstalkPixelCyclePresets.CreateLegacy(RgbPixelOrder.RGB);
+        CrosstalkPixelCycle legacyInteger = angleDefault.Clone();
+        legacyInteger.TiltAngleDegrees = null;
+        legacyInteger.RowAdvance = 1;
+
+        if (angleDefault.ResolveTiltAngleDegrees() != CrosstalkPixelCycle.DefaultTiltAngleDegrees ||
+            angleDefault.CalculateEffectiveRowAdvance() != 1.0d ||
+            legacyInteger.CalculateEffectiveRowAdvance() != 1.0d)
+        {
+            throw new InvalidOperationException("默认 18.435° 未保持最初版每行 1 个周期位置的位移。");
+        }
+
+        CrosstalkPixelCycle angleBoundary = angleDefault.Clone();
+        angleBoundary.SetTiltAngleDegrees(89.0d);
+        angleBoundary.SetTiltAngleDegrees(-89.0d);
+        bool rejectedOutsideAngleRange = false;
+        try
+        {
+            angleBoundary.SetTiltAngleDegrees(89.000001d);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            rejectedOutsideAngleRange = true;
+        }
+
+        if (!rejectedOutsideAngleRange)
+        {
+            throw new InvalidOperationException("串扰倾斜角未限制在 -89° 到 89° 范围内。");
+        }
+
+        var legacyExtreme = new CrosstalkPixelCycle
+        {
+            Pixels = [RgbChannelMask.Red],
+            RowAdvance = 4096,
+            TiltAngleDegrees = null
+        };
+        if (legacyExtreme.ResolveTiltAngleDegrees() != CrosstalkPixelCycle.MaximumTiltAngleDegrees)
+        {
+            throw new InvalidOperationException("旧版超范围纵向步进未安全截断到 89°。");
+        }
+
+        for (int phase = 1; phase <= 8; phase++)
+        {
+            PatternSettings angleSettings = CreateSmallPhaseSettings(RgbPixelOrder.RGB);
+            angleSettings.Phase = phase;
+            angleSettings.PixelCycle = angleDefault.Clone();
+            PatternSettings legacySettings = angleSettings.Clone();
+            legacySettings.PixelCycle = legacyInteger.Clone();
+
+            using Mat angleImage = PatternGenerator.Generate(angleSettings);
+            using Mat legacyImage = PatternGenerator.Generate(legacySettings);
+            AssertImagesEqual(legacyImage, angleImage, $"默认倾斜角相位 {phase}");
+        }
+
+        PatternSettings tiltedSettings = CreateSmallPhaseSettings(RgbPixelOrder.RGB);
+        tiltedSettings.PixelCycle = angleDefault.Clone();
+        tiltedSettings.PixelCycle.SetTiltAngleDegrees(10.125d);
+        using Mat firstTilted = PatternGenerator.Generate(tiltedSettings);
+        using Mat secondTilted = PatternGenerator.Generate(tiltedSettings.Clone());
+        AssertImagesEqual(firstTilted, secondTilted, "非整数倾斜角确定性");
+
+        PatternSettings defaultSettings = tiltedSettings.Clone();
+        defaultSettings.PixelCycle = angleDefault.Clone();
+        using Mat defaultImage = PatternGenerator.Generate(defaultSettings);
+        if (Cv2.Norm(defaultImage, firstTilted, NormTypes.INF) == 0.0d)
+        {
+            throw new InvalidOperationException("非整数倾斜角没有改变串扰像素排列。");
+        }
+
+        ForEachPixel(firstTilted, (x, y, blue, green, red) =>
+        {
+            AssertBinaryChannel(blue, PatternType.PhaseStripes, x, y, "B");
+            AssertBinaryChannel(green, PatternType.PhaseStripes, x, y, "G");
+            AssertBinaryChannel(red, PatternType.PhaseStripes, x, y, "R");
+        });
+
+        // v1/v2 自定义配置缺少 TiltAngleDegrees 时，旧整数步进 3 应无损迁移为 45°。
+        var legacyCustom = new CrosstalkPixelCycle
+        {
+            Pixels = [RgbChannelMask.Red, RgbChannelMask.Blue],
+            ColumnAdvance = -2,
+            RowAdvance = 3,
+            TiltAngleDegrees = null
+        };
+        if (Math.Abs(legacyCustom.ResolveTiltAngleDegrees() - 45.0d) > 0.000000001d ||
+            legacyCustom.CalculateEffectiveRowAdvance() != 3.0d ||
+            legacyCustom.Clone().TiltAngleDegrees is not null)
+        {
+            throw new InvalidOperationException("旧串扰纵向步进未按 atan(RowAdvance / 3) 兼容迁移。");
+        }
+
+        PhaseStripePreferences defaults = PhaseStripePreferences.CreateReferenceDefault();
+        PatternSettings restored = defaults.Settings;
+        CrosstalkPixelCycle restoredCycle = CrosstalkPixelCyclePresets.Resolve(restored);
+        BorderOverlaySettings border = restored.BorderOverlay;
+        if (restored.CanvasWidth != 1920 || restored.CanvasHeight != 1080 ||
+            restored.PatternX != 71 || restored.PatternY != 226 ||
+            restored.PatternWidth != 1777 || restored.PatternHeight != 627 ||
+            restored.Phase != 1 ||
+            !CrosstalkPixelCyclePresets.TryGetLegacyOrder(restoredCycle, out RgbPixelOrder order) ||
+            order != RgbPixelOrder.RGB ||
+            restoredCycle.PeriodLength != 8 ||
+            restoredCycle.ResolveTiltAngleDegrees() != CrosstalkPixelCycle.DefaultTiltAngleDegrees ||
+            border.Enabled || border.X != 71 || border.Y != 226 ||
+            border.Width != 1777 || border.Height != 627 || border.LineWidth != 5 ||
+            defaults.OutputFormat != ImageFormatKind.Png || defaults.Quality != 95 ||
+            !defaults.PreviewOverlay.ShowCenterCrosshair ||
+            !defaults.PreviewOverlay.ShowPixelCoordinates)
+        {
+            throw new InvalidOperationException("串扰页面恢复按钮使用的最初版默认参数不完整。");
+        }
+    }
+
     private static unsafe void VerifyChannelPermutation(Mat baseline, Mat actual, RgbPixelOrder order)
     {
         int rows = baseline.Rows;
@@ -1138,6 +1259,8 @@ public static class GeneratedPatternVerifier
 
             PatternSettings grid = migrated.Main.PatternProfiles[PatternType.NinePointGrid];
             PatternSettings migratedSingleDot = migrated.Main.PatternProfiles[PatternType.DistortionGrid];
+            CrosstalkPixelCycle migratedPhaseCycle =
+                CrosstalkPixelCyclePresets.Resolve(migrated.PhaseStripe.Settings);
             RegionMargins gridMargins = grid.GetMargins();
             RegionMargins borderMargins = grid.BorderOverlay.GetMargins();
             ScreenOneSettings screen = migrated.ScreenOne.Settings;
@@ -1147,6 +1270,8 @@ public static class GeneratedPatternVerifier
                 grid.PatternWidth != 1768 || grid.PatternHeight != 678 ||
                 borderMargins.Left != -2 || borderMargins.Top != 3 ||
                 borderMargins.Right != 1822 || borderMargins.Bottom != 1027 ||
+                migratedPhaseCycle.ResolveTiltAngleDegrees() != CrosstalkPixelCycle.DefaultTiltAngleDegrees ||
+                migratedPhaseCycle.CalculateEffectiveRowAdvance() != 1.0d ||
                 screen.LeftRegionLeftMargin != 50 || screen.LeftRegionRightMargin != 1650 ||
                 screen.RightRegionLeftMargin != 1650 || screen.RightRegionRightMargin != 50)
             {
@@ -1223,7 +1348,8 @@ public static class GeneratedPatternVerifier
                 {
                     Pixels = [RgbChannelMask.Red, RgbChannelMask.Green | RgbChannelMask.Blue],
                     ColumnAdvance = -2,
-                    RowAdvance = 3
+                    RowAdvance = 3,
+                    TiltAngleDegrees = 12.345678d
                 };
                 preferences.NonIntegerBlend.Matlab.WriteMesh = false;
                 preferences.NonIntegerBlend.Discrete.OutputFormat = ImageFormatKind.Bmp;
@@ -1244,6 +1370,7 @@ public static class GeneratedPatternVerifier
                     ColumnAdvance: -2,
                     RowAdvance: 3
                 } loadedCycle ||
+                loadedCycle.TiltAngleDegrees != 12.345678d ||
                 loadedCycle.Pixels[0] != RgbChannelMask.Red ||
                 loadedCycle.Pixels[1] != (RgbChannelMask.Green | RgbChannelMask.Blue) ||
                 loaded.NonIntegerBlend.Matlab.WriteMesh ||

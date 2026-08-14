@@ -283,6 +283,9 @@ public static class PatternGenerator
                     $"串扰周期第 {index + 1} 个像素包含未知通道值 {(int)mask}。");
             }
         }
+
+        // 同时验证角度范围以及 3 × tan(theta) 是否能得到有限的连续行位移。
+        _ = cycle.CalculateEffectiveRowAdvance();
     }
 
     private static void DrawBorder(Mat canvas, PatternSettings settings)
@@ -316,6 +319,7 @@ public static class PatternGenerator
     private static unsafe void DrawPhaseStripes(Mat canvas, PatternSettings settings)
     {
         CrosstalkPixelCycle cycle = CrosstalkPixelCyclePresets.Resolve(settings);
+        double rowAdvance = cycle.CalculateEffectiveRowAdvance();
         int left = Math.Max(0, settings.PatternX);
         int top = Math.Max(0, settings.PatternY);
         int right = (int)Math.Min(canvas.Cols, (long)settings.PatternX + settings.PatternWidth);
@@ -330,16 +334,21 @@ public static class PatternGenerator
         {
             byte* row = (byte*)canvas.Ptr(y);
             int v = y - settings.PatternY;
+            // 与非整数连续融合采用相同语义：每行移动 3 × tan(theta) 个周期位置。
+            // 一个输出像素仍必须严格为 0/255，因此连续坐标落入哪个周期单元由 floor 决定。
+            // 默认 18.435° 的行位移会在模型中吸附为精确 1，完全复现最初版 v-3u 公式。
+            int rowCycleIndex = PositiveModuloFloor(
+                (v * rowAdvance) + settings.Phase - 1.0d,
+                cycle.PeriodLength);
 
             for (int x = left; x < right; x++)
             {
                 int u = x - settings.PatternX;
-                // 使用图案局部坐标计算可配置周期；long 中间值允许斜向步进使用完整 int 范围。
+                // 使用图案局部坐标计算可配置周期；long 中间值允许横向步进使用完整 int 范围。
                 // 正模保证图案被画布裁剪到负坐标后，周期仍与未裁剪时完全连续。
                 long cyclePosition =
-                    ((long)v * cycle.RowAdvance) +
                     ((long)u * cycle.ColumnAdvance) +
-                    settings.Phase - 1L;
+                    rowCycleIndex;
                 int cycleIndex = PositiveModulo(cyclePosition, cycle.PeriodLength);
                 RgbChannelMask channels = cycle.Pixels[cycleIndex];
                 int offset = x * 3;
@@ -483,5 +492,22 @@ public static class PatternGenerator
     {
         long remainder = value % divisor;
         return (int)(remainder < 0 ? remainder + divisor : remainder);
+    }
+
+    private static int PositiveModuloFloor(double value, int divisor)
+    {
+        if (!double.IsFinite(value))
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "倾斜角产生的周期坐标超出支持范围。");
+        }
+
+        double remainder = value % divisor;
+        if (remainder < 0.0d)
+        {
+            remainder += divisor;
+        }
+
+        int index = (int)Math.Floor(remainder);
+        return index >= divisor ? 0 : index;
     }
 }
