@@ -68,6 +68,7 @@ partial class MainForm
         comboOutputFormat = new ComboBox();
         labelOutputFormat = new Label();
         groupActions = new GroupBox();
+        buttonBatchAddBorder = new Button();
         buttonBatchExport = new Button();
         buttonSaveCurrent = new Button();
         buttonReset = new Button();
@@ -677,6 +678,7 @@ partial class MainForm
         // 
         // groupActions
         // 
+        groupActions.Controls.Add(buttonBatchAddBorder);
         groupActions.Controls.Add(buttonBatchExport);
         groupActions.Controls.Add(buttonSaveCurrent);
         groupActions.Controls.Add(buttonReset);
@@ -685,10 +687,21 @@ partial class MainForm
         groupActions.Margin = new Padding(4);
         groupActions.Name = "groupActions";
         groupActions.Padding = new Padding(4);
-        groupActions.Size = new Size(550, 196);
+        groupActions.Size = new Size(550, 266);
         groupActions.TabIndex = 6;
         groupActions.TabStop = false;
         groupActions.Text = "生成与保存";
+        //
+        // buttonBatchAddBorder
+        //
+        buttonBatchAddBorder.Location = new Point(27, 182);
+        buttonBatchAddBorder.Margin = new Padding(4);
+        buttonBatchAddBorder.Name = "buttonBatchAddBorder";
+        buttonBatchAddBorder.Size = new Size(497, 57);
+        buttonBatchAddBorder.TabIndex = 4;
+        buttonBatchAddBorder.Text = "批量给文件夹图片加白框...";
+        buttonBatchAddBorder.UseVisualStyleBackColor = true;
+        buttonBatchAddBorder.Click += buttonBatchAddBorder_Click;
         // 
         // buttonBatchExport
         // 
@@ -900,6 +913,7 @@ partial class MainForm
     private ComboBox comboOutputFormat;
     private Label labelOutputFormat;
     private GroupBox groupActions;
+    private Button buttonBatchAddBorder;
     private Button buttonBatchExport;
     private Button buttonSaveCurrent;
     private Button buttonReset;

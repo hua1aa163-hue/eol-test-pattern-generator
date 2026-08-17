@@ -47,6 +47,13 @@
       <DependentUpon>PhaseStripeForm.cs</DependentUpon>
     </Compile>
 
+    <Compile Update="CrosstalkGridForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="CrosstalkGridForm.Designer.cs">
+      <DependentUpon>CrosstalkGridForm.cs</DependentUpon>
+    </Compile>
+
     <Compile Update="ScreenOneForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -73,6 +80,13 @@
     </Compile>
     <Compile Update="Controls\CrosstalkCycleEditor.Designer.cs">
       <DependentUpon>CrosstalkCycleEditor.cs</DependentUpon>
+    </Compile>
+
+    <Compile Update="Controls\CrosstalkPixelGridEditor.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Controls\CrosstalkPixelGridEditor.Designer.cs">
+      <DependentUpon>CrosstalkPixelGridEditor.cs</DependentUpon>
     </Compile>
 
     <Compile Update="Controls\RegionMarginsEditor.cs">

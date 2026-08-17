@@ -118,7 +118,7 @@ public partial class WorkspaceForm : Form
         // 嵌入模式会隐藏内部重复页签头，但不删除任何功能或 Designer 控件。
         if (page is NonIntegerFusionForm nonIntegerPage)
         {
-            nonIntegerPage.SelectWorkspaceSection(pageIndex - 3);
+            nonIntegerPage.SelectWorkspaceSection(pageIndex - 4);
         }
 
         AttachProjectionPreview(page);
@@ -136,17 +136,18 @@ public partial class WorkspaceForm : Form
             0 => CreateEmbeddedForm(new MainForm(), form => form.ConfigureAsWorkspacePage()),
             1 => CreateEmbeddedForm(new ScreenOneForm(), form => form.ConfigureAsWorkspacePage()),
             2 => CreateEmbeddedForm(new PhaseStripeForm(), form => form.ConfigureAsWorkspacePage()),
-            >= 3 and <= 5 => GetOrCreateNonIntegerPage(),
-            6 => new StillVideoPage { Dock = DockStyle.Fill },
+            3 => CreateEmbeddedForm(new CrosstalkGridForm(), form => form.ConfigureAsWorkspacePage()),
+            >= 4 and <= 6 => GetOrCreateNonIntegerPage(),
+            7 => new StillVideoPage { Dock = DockStyle.Fill },
             _ => throw new ArgumentOutOfRangeException(nameof(pageIndex))
         };
 
         // 非整数的三个导航项故意指向同一个实例。
-        if (pageIndex is >= 3 and <= 5)
+        if (pageIndex is >= 4 and <= 6)
         {
-            _pages[3] = page;
             _pages[4] = page;
             _pages[5] = page;
+            _pages[6] = page;
         }
         else
         {
@@ -167,7 +168,7 @@ public partial class WorkspaceForm : Form
 
     private NonIntegerFusionForm GetOrCreateNonIntegerPage()
     {
-        if (_pages.TryGetValue(3, out Control? cached) && cached is NonIntegerFusionForm existing)
+        if (_pages.TryGetValue(4, out Control? cached) && cached is NonIntegerFusionForm existing)
         {
             return existing;
         }
@@ -192,10 +193,11 @@ public partial class WorkspaceForm : Form
         0 => "基础图卡、纯色图、导入图片及白框叠加",
         1 => "3D显示器图卡左右区域及三张参考图卡",
         2 => "周期可调的六种 RGB 排列、相位与倾斜角",
-        3 => "MATLAB 兼容的非整数覆盖率融合",
-        4 => "离散光源图、分组图片及 LightTools 光源文件",
-        5 => "将任意图片转换为单文件或 R/G/B 光源文件",
-        6 => "按指定顺序和静止时长生成 MP4 或无损视频",
+        3 => "按水平方向周期位置逐项选择 R/G/B 通道、横向步进、相位与倾斜角",
+        4 => "MATLAB 兼容的非整数覆盖率融合",
+        5 => "离散光源图、分组图片及 LightTools 光源文件",
+        6 => "将任意图片转换为单文件或 R/G/B 光源文件",
+        7 => "按指定顺序和静止时长生成 MP4 或无损视频",
         _ => string.Empty
     };
 
@@ -679,6 +681,9 @@ public partial class WorkspaceForm : Form
                     break;
                 case PhaseStripeForm { IsExporting: true }:
                     names.Add("串扰像素排列");
+                    break;
+                case CrosstalkGridForm { IsExporting: true }:
+                    names.Add("串扰像素排列2");
                     break;
                 case ScreenOneForm { IsExporting: true }:
                     names.Add("3D显示器图卡");

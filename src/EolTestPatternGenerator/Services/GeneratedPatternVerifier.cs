@@ -1352,7 +1352,7 @@ public static class GeneratedPatternVerifier
             var writer = new UserSettingsStore(settingsPath);
             writer.UpdateAndSave(preferences =>
             {
-                preferences.Workspace.SelectedNavigationIndex = 6;
+                preferences.Workspace.SelectedNavigationIndex = 7;
                 preferences.Workspace.SelectedNavigationPageId = WorkspaceNavigationPages.ImageToVideo;
                 preferences.Workspace.ProjectionTopology =
                     EolTestPatternGenerator.Projection.DisplayTopology.Extend;
@@ -1361,6 +1361,19 @@ public static class GeneratedPatternVerifier
                 preferences.Main.LastImportedImageDirectory = @"C:\图卡\输入";
                 preferences.Main.LastExportDirectory = @"D:\图卡\主界面输出";
                 preferences.PhaseStripe.LastExportDirectory = @"D:\图卡\串扰输出";
+                preferences.PhaseStripe.TwoInOne = true;
+                preferences.PhaseStripe.LastTwoInOneSourceDirectory = @"C:\图卡\串扰批量源";
+                preferences.PhaseStripe.LastTwoInOneOutputDirectory = @"D:\图卡\串扰批量二合一";
+                preferences.CrosstalkGrid.LastExportDirectory = @"D:\图卡\串扰2输出";
+                preferences.CrosstalkGrid.TwoInOne = true;
+                preferences.CrosstalkGrid.LastTwoInOneSourceDirectory = @"C:\图卡\串扰2批量源";
+                preferences.CrosstalkGrid.LastTwoInOneOutputDirectory = @"D:\图卡\串扰2批量二合一";
+                preferences.CrosstalkGrid.Settings.PixelCycle = new CrosstalkPixelCycle
+                {
+                    Pixels = [RgbChannelMask.Blue, RgbChannelMask.Red | RgbChannelMask.Green],
+                    ColumnAdvance = -3,
+                    TiltAngleDegrees = -7.5d
+                };
                 preferences.ScreenOne.LastExportDirectory = @"D:\图卡\显示器输出";
                 preferences.PhaseStripe.Settings.PixelCycle = new CrosstalkPixelCycle
                 {
@@ -1376,7 +1389,7 @@ public static class GeneratedPatternVerifier
 
             var reader = new UserSettingsStore(settingsPath);
             ApplicationPreferences loaded = reader.Load();
-            if (loaded.Workspace.SelectedNavigationIndex != 6 ||
+            if (loaded.Workspace.SelectedNavigationIndex != 7 ||
                 loaded.Workspace.SelectedNavigationPageId != WorkspaceNavigationPages.ImageToVideo ||
                 loaded.Workspace.ProjectionTopology !=
                     EolTestPatternGenerator.Projection.DisplayTopology.Extend ||
@@ -1385,6 +1398,21 @@ public static class GeneratedPatternVerifier
                 !string.Equals(loaded.Main.LastImportedImageDirectory, @"C:\图卡\输入", StringComparison.Ordinal) ||
                 !string.Equals(loaded.Main.LastExportDirectory, @"D:\图卡\主界面输出", StringComparison.Ordinal) ||
                 !string.Equals(loaded.PhaseStripe.LastExportDirectory, @"D:\图卡\串扰输出", StringComparison.Ordinal) ||
+                !loaded.PhaseStripe.TwoInOne ||
+                !string.Equals(loaded.PhaseStripe.LastTwoInOneSourceDirectory, @"C:\图卡\串扰批量源", StringComparison.Ordinal) ||
+                !string.Equals(loaded.PhaseStripe.LastTwoInOneOutputDirectory, @"D:\图卡\串扰批量二合一", StringComparison.Ordinal) ||
+                !loaded.CrosstalkGrid.TwoInOne ||
+                !string.Equals(loaded.CrosstalkGrid.LastExportDirectory, @"D:\图卡\串扰2输出", StringComparison.Ordinal) ||
+                !string.Equals(loaded.CrosstalkGrid.LastTwoInOneSourceDirectory, @"C:\图卡\串扰2批量源", StringComparison.Ordinal) ||
+                !string.Equals(loaded.CrosstalkGrid.LastTwoInOneOutputDirectory, @"D:\图卡\串扰2批量二合一", StringComparison.Ordinal) ||
+                loaded.CrosstalkGrid.Settings.PixelCycle is not
+                {
+                    PeriodLength: 2,
+                    ColumnAdvance: -3
+                } loadedGridCycle ||
+                loadedGridCycle.ResolveTiltAngleDegrees() != -7.5d ||
+                loadedGridCycle.Pixels[0] != RgbChannelMask.Blue ||
+                loadedGridCycle.Pixels[1] != (RgbChannelMask.Red | RgbChannelMask.Green) ||
                 !string.Equals(loaded.ScreenOne.LastExportDirectory, @"D:\图卡\显示器输出", StringComparison.Ordinal) ||
                 loaded.PhaseStripe.Settings.PixelCycle is not
                 {
@@ -1411,9 +1439,10 @@ public static class GeneratedPatternVerifier
                 EolTestPatternGenerator.Projection.DisplayTopology.Internal;
             loaded.Main.LastExportDirectory = @"E:\被修改";
             loaded.PhaseStripe.Settings.PixelCycle!.Pixels[0] = RgbChannelMask.All;
+            loaded.CrosstalkGrid.Settings.PixelCycle!.Pixels[0] = RgbChannelMask.All;
             ApplicationPreferences unchanged = reader.Load();
             if (unchanged.Main.Quality != 42 ||
-                unchanged.Workspace.SelectedNavigationIndex != 6 ||
+                unchanged.Workspace.SelectedNavigationIndex != 7 ||
                 unchanged.Workspace.ProjectionTopology !=
                     EolTestPatternGenerator.Projection.DisplayTopology.Extend ||
                 !string.Equals(unchanged.Main.LastExportDirectory, @"D:\图卡\主界面输出", StringComparison.Ordinal))
@@ -1424,6 +1453,11 @@ public static class GeneratedPatternVerifier
             if (reader.Load().PhaseStripe.Settings.PixelCycle!.Pixels[0] != RgbChannelMask.Red)
             {
                 throw new InvalidOperationException("设置仓库 Load 未深拷贝串扰像素周期。");
+            }
+
+            if (reader.Load().CrosstalkGrid.Settings.PixelCycle!.Pixels[0] != RgbChannelMask.Blue)
+            {
+                throw new InvalidOperationException("设置仓库 Load 未深拷贝串扰像素排列2周期。");
             }
 
             // 周期为 1 时 RGB 与 RBG 的像素内容无法区分；JSON 必须把 PixelOrder

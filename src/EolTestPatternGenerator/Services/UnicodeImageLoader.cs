@@ -9,6 +9,20 @@ public static class UnicodeImageLoader
 {
     public static Mat LoadColor(string path)
     {
+        return Load(path, ImreadModes.Color);
+    }
+
+    /// <summary>
+    /// 保留 8 位灰度、BGR 或 BGRA 通道读取图片。批量白框使用该入口，
+    /// 避免透明 PNG/WebP 在尚未绘框时就被强制转成不透明三通道。
+    /// </summary>
+    public static Mat LoadUnchanged(string path)
+    {
+        return Load(path, ImreadModes.Unchanged);
+    }
+
+    private static Mat Load(string path, ImreadModes mode)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         string fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath))
@@ -17,7 +31,7 @@ public static class UnicodeImageLoader
         }
 
         byte[] encoded = File.ReadAllBytes(fullPath);
-        Mat image = Cv2.ImDecode(encoded, ImreadModes.Color);
+        Mat image = Cv2.ImDecode(encoded, mode);
         if (image.Empty())
         {
             image.Dispose();

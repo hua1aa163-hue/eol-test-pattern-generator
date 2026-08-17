@@ -4,7 +4,7 @@ namespace EolTestPatternGenerator;
 
 #nullable disable
 
-partial class PhaseStripeForm
+partial class CrosstalkGridForm
 {
     private System.ComponentModel.IContainer components = null;
 
@@ -33,7 +33,7 @@ partial class PhaseStripeForm
         groupRegion = new GroupBox();
         regionMarginsEditor = new RegionMarginsEditor();
         groupPhase = new GroupBox();
-        cycleEditor = new CrosstalkCycleEditor();
+        cycleEditor = new CrosstalkPixelGridEditor();
         numericPhase = new NumericUpDown();
         labelPhase = new Label();
         borderOverlayEditor = new BorderOverlayEditor();
@@ -47,7 +47,6 @@ partial class PhaseStripeForm
         checkTwoInOne = new CheckBox();
         buttonBatchTwoInOneFolder = new Button();
         buttonResetDefaults = new Button();
-        buttonNonIntegerFusion = new Button();
         buttonBatchExport = new Button();
         buttonSaveCurrent = new Button();
         buttonPreview = new Button();
@@ -79,30 +78,23 @@ partial class PhaseStripeForm
         previewHeaderPanel.SuspendLayout();
         statusStrip.SuspendLayout();
         SuspendLayout();
-        // 
+        //
         // splitContainerMain
-        // 
+        //
         splitContainerMain.Dock = DockStyle.Fill;
         splitContainerMain.FixedPanel = FixedPanel.Panel1;
         splitContainerMain.Location = new Point(0, 0);
-        splitContainerMain.Margin = new Padding(4, 4, 4, 4);
         splitContainerMain.Name = "splitContainerMain";
-        // 
-        // splitContainerMain.Panel1
-        // 
         splitContainerMain.Panel1.Controls.Add(settingsFlowPanel);
         splitContainerMain.Panel1MinSize = 405;
-        // 
-        // splitContainerMain.Panel2
-        // 
         splitContainerMain.Panel2.Controls.Add(previewPanel);
         splitContainerMain.Size = new Size(2130, 1319);
         splitContainerMain.SplitterDistance = 608;
         splitContainerMain.SplitterWidth = 6;
         splitContainerMain.TabIndex = 0;
-        // 
+        //
         // settingsFlowPanel
-        // 
+        //
         settingsFlowPanel.AutoScroll = true;
         settingsFlowPanel.Controls.Add(groupCanvas);
         settingsFlowPanel.Controls.Add(groupRegion);
@@ -113,32 +105,28 @@ partial class PhaseStripeForm
         settingsFlowPanel.Dock = DockStyle.Fill;
         settingsFlowPanel.FlowDirection = FlowDirection.TopDown;
         settingsFlowPanel.Location = new Point(0, 0);
-        settingsFlowPanel.Margin = new Padding(4, 4, 4, 4);
         settingsFlowPanel.Name = "settingsFlowPanel";
         settingsFlowPanel.Padding = new Padding(15, 15, 12, 24);
         settingsFlowPanel.Size = new Size(608, 1319);
         settingsFlowPanel.TabIndex = 0;
         settingsFlowPanel.WrapContents = false;
-        // 
+        //
         // groupCanvas
-        // 
+        //
         groupCanvas.Controls.Add(numericCanvasHeight);
         groupCanvas.Controls.Add(labelCanvasHeight);
         groupCanvas.Controls.Add(numericCanvasWidth);
         groupCanvas.Controls.Add(labelCanvasWidth);
         groupCanvas.Location = new Point(19, 19);
-        groupCanvas.Margin = new Padding(4, 4, 4, 4);
         groupCanvas.Name = "groupCanvas";
-        groupCanvas.Padding = new Padding(4, 4, 4, 4);
         groupCanvas.Size = new Size(550, 159);
         groupCanvas.TabIndex = 0;
         groupCanvas.TabStop = false;
         groupCanvas.Text = "画布尺寸";
-        // 
+        //
         // numericCanvasHeight
-        // 
+        //
         numericCanvasHeight.Location = new Point(168, 99);
-        numericCanvasHeight.Margin = new Padding(4, 4, 4, 4);
         numericCanvasHeight.Maximum = new decimal(new int[] { 8192, 0, 0, 0 });
         numericCanvasHeight.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericCanvasHeight.Name = "numericCanvasHeight";
@@ -146,21 +134,19 @@ partial class PhaseStripeForm
         numericCanvasHeight.TabIndex = 3;
         numericCanvasHeight.Value = new decimal(new int[] { 1080, 0, 0, 0 });
         numericCanvasHeight.ValueChanged += Parameter_ValueChanged;
-        // 
+        //
         // labelCanvasHeight
-        // 
+        //
         labelCanvasHeight.AutoSize = true;
         labelCanvasHeight.Location = new Point(27, 105);
-        labelCanvasHeight.Margin = new Padding(4, 0, 4, 0);
         labelCanvasHeight.Name = "labelCanvasHeight";
         labelCanvasHeight.Size = new Size(82, 24);
         labelCanvasHeight.TabIndex = 2;
         labelCanvasHeight.Text = "画布高度";
-        // 
+        //
         // numericCanvasWidth
-        // 
+        //
         numericCanvasWidth.Location = new Point(168, 42);
-        numericCanvasWidth.Margin = new Padding(4, 4, 4, 4);
         numericCanvasWidth.Maximum = new decimal(new int[] { 8192, 0, 0, 0 });
         numericCanvasWidth.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericCanvasWidth.Name = "numericCanvasWidth";
@@ -168,24 +154,21 @@ partial class PhaseStripeForm
         numericCanvasWidth.TabIndex = 1;
         numericCanvasWidth.Value = new decimal(new int[] { 1920, 0, 0, 0 });
         numericCanvasWidth.ValueChanged += Parameter_ValueChanged;
-        // 
+        //
         // labelCanvasWidth
-        // 
+        //
         labelCanvasWidth.AutoSize = true;
         labelCanvasWidth.Location = new Point(27, 48);
-        labelCanvasWidth.Margin = new Padding(4, 0, 4, 0);
         labelCanvasWidth.Name = "labelCanvasWidth";
         labelCanvasWidth.Size = new Size(82, 24);
         labelCanvasWidth.TabIndex = 0;
         labelCanvasWidth.Text = "画布宽度";
-        // 
+        //
         // groupRegion
-        // 
+        //
         groupRegion.Controls.Add(regionMarginsEditor);
-        groupRegion.Location = new Point(19, 186);
-        groupRegion.Margin = new Padding(4, 4, 4, 4);
+        groupRegion.Location = new Point(19, 185);
         groupRegion.Name = "groupRegion";
-        groupRegion.Padding = new Padding(4, 4, 4, 4);
         groupRegion.Size = new Size(550, 320);
         groupRegion.TabIndex = 1;
         groupRegion.TabStop = false;
@@ -195,39 +178,34 @@ partial class PhaseStripeForm
         //
         regionMarginsEditor.CanvasSize = new Size(1920, 1080);
         regionMarginsEditor.Location = new Point(27, 38);
-        regionMarginsEditor.Margin = new Padding(4);
         regionMarginsEditor.Name = "regionMarginsEditor";
         regionMarginsEditor.Size = new Size(496, 256);
         regionMarginsEditor.TabIndex = 0;
         regionMarginsEditor.MarginsChanged += regionMarginsEditor_MarginsChanged;
-        // 
+        //
         // groupPhase
-        // 
+        //
         groupPhase.Controls.Add(cycleEditor);
         groupPhase.Controls.Add(numericPhase);
         groupPhase.Controls.Add(labelPhase);
-        groupPhase.Location = new Point(19, 419);
-        groupPhase.Margin = new Padding(4, 4, 4, 4);
+        groupPhase.Location = new Point(19, 512);
         groupPhase.Name = "groupPhase";
-        groupPhase.Padding = new Padding(4, 4, 4, 4);
-        groupPhase.Size = new Size(550, 320);
+        groupPhase.Size = new Size(550, 790);
         groupPhase.TabIndex = 2;
         groupPhase.TabStop = false;
-        groupPhase.Text = "相位与像素排列";
+        groupPhase.Text = "相位与水平周期像素";
         //
         // cycleEditor
         //
         cycleEditor.Location = new Point(27, 94);
-        cycleEditor.Margin = new Padding(4);
         cycleEditor.Name = "cycleEditor";
-        cycleEditor.Size = new Size(496, 204);
+        cycleEditor.Size = new Size(496, 657);
         cycleEditor.TabIndex = 2;
         cycleEditor.SettingsChanged += cycleEditor_SettingsChanged;
-        // 
+        //
         // numericPhase
-        // 
+        //
         numericPhase.Location = new Point(168, 42);
-        numericPhase.Margin = new Padding(4, 4, 4, 4);
         numericPhase.Maximum = new decimal(new int[] { 8, 0, 0, 0 });
         numericPhase.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericPhase.Name = "numericPhase";
@@ -235,109 +213,98 @@ partial class PhaseStripeForm
         numericPhase.TabIndex = 1;
         numericPhase.Value = new decimal(new int[] { 1, 0, 0, 0 });
         numericPhase.ValueChanged += Parameter_ValueChanged;
-        // 
+        //
         // labelPhase
-        // 
+        //
         labelPhase.AutoSize = true;
         labelPhase.Location = new Point(27, 48);
-        labelPhase.Margin = new Padding(4, 0, 4, 0);
         labelPhase.Name = "labelPhase";
         labelPhase.Size = new Size(88, 24);
         labelPhase.TabIndex = 0;
         labelPhase.Text = "当前相位";
-        // 
+        //
         // borderOverlayEditor
-        // 
+        //
         borderOverlayEditor.CanvasSize = new Size(1920, 1080);
-        borderOverlayEditor.Location = new Point(21, 641);
-        borderOverlayEditor.Margin = new Padding(6, 6, 6, 6);
+        borderOverlayEditor.Location = new Point(21, 1309);
+        borderOverlayEditor.Margin = new Padding(6);
         borderOverlayEditor.Name = "borderOverlayEditor";
         borderOverlayEditor.Size = new Size(550, 345);
         borderOverlayEditor.TabIndex = 3;
         borderOverlayEditor.SettingsChanged += borderOverlayEditor_SettingsChanged;
-        // 
+        //
         // groupExport
-        // 
+        //
         groupExport.Controls.Add(labelExportHelp);
         groupExport.Controls.Add(numericQuality);
         groupExport.Controls.Add(labelQuality);
         groupExport.Controls.Add(comboOutputFormat);
         groupExport.Controls.Add(labelOutputFormat);
-        groupExport.Location = new Point(19, 996);
-        groupExport.Margin = new Padding(4, 4, 4, 4);
+        groupExport.Location = new Point(19, 1664);
         groupExport.Name = "groupExport";
-        groupExport.Padding = new Padding(4, 4, 4, 4);
         groupExport.Size = new Size(550, 208);
         groupExport.TabIndex = 4;
         groupExport.TabStop = false;
         groupExport.Text = "导出设置";
-        // 
+        //
         // labelExportHelp
-        // 
+        //
         labelExportHelp.ForeColor = Color.DimGray;
         labelExportHelp.Location = new Point(27, 153);
-        labelExportHelp.Margin = new Padding(4, 0, 4, 0);
         labelExportHelp.Name = "labelExportHelp";
         labelExportHelp.Size = new Size(496, 45);
         labelExportHelp.TabIndex = 4;
         labelExportHelp.Text = "PNG、BMP、TIFF 可保持精确的 0/255 像素。";
-        // 
+        //
         // numericQuality
-        // 
+        //
         numericQuality.Location = new Point(168, 99);
-        numericQuality.Margin = new Padding(4, 4, 4, 4);
         numericQuality.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
         numericQuality.Name = "numericQuality";
         numericQuality.Size = new Size(147, 30);
         numericQuality.TabIndex = 3;
         numericQuality.Value = new decimal(new int[] { 95, 0, 0, 0 });
-        // 
+        //
         // labelQuality
-        // 
+        //
         labelQuality.AutoSize = true;
         labelQuality.Location = new Point(27, 105);
-        labelQuality.Margin = new Padding(4, 0, 4, 0);
         labelQuality.Name = "labelQuality";
         labelQuality.Size = new Size(82, 24);
         labelQuality.TabIndex = 2;
         labelQuality.Text = "压缩质量";
-        // 
+        //
         // comboOutputFormat
-        // 
+        //
         comboOutputFormat.DropDownStyle = ComboBoxStyle.DropDownList;
         comboOutputFormat.FormattingEnabled = true;
         comboOutputFormat.Items.AddRange(new object[] { "PNG（无损，推荐）", "JPEG / JPG", "BMP", "TIFF", "WebP" });
         comboOutputFormat.Location = new Point(168, 42);
-        comboOutputFormat.Margin = new Padding(4, 4, 4, 4);
         comboOutputFormat.Name = "comboOutputFormat";
         comboOutputFormat.Size = new Size(354, 32);
         comboOutputFormat.TabIndex = 1;
         comboOutputFormat.SelectedIndexChanged += comboOutputFormat_SelectedIndexChanged;
-        // 
+        //
         // labelOutputFormat
-        // 
+        //
         labelOutputFormat.AutoSize = true;
         labelOutputFormat.Location = new Point(27, 48);
-        labelOutputFormat.Margin = new Padding(4, 0, 4, 0);
         labelOutputFormat.Name = "labelOutputFormat";
         labelOutputFormat.Size = new Size(82, 24);
         labelOutputFormat.TabIndex = 0;
         labelOutputFormat.Text = "图片格式";
-        // 
+        //
         // groupActions
         //
         groupActions.Controls.Add(buttonBatchTwoInOneFolder);
-        groupActions.Controls.Add(checkTwoInOne);
         groupActions.Controls.Add(buttonResetDefaults);
-        groupActions.Controls.Add(buttonNonIntegerFusion);
+        groupActions.Controls.Add(checkTwoInOne);
         groupActions.Controls.Add(buttonBatchExport);
         groupActions.Controls.Add(buttonSaveCurrent);
         groupActions.Controls.Add(buttonPreview);
-        groupActions.Location = new Point(19, 1212);
-        groupActions.Margin = new Padding(4, 4, 4, 4);
+        groupActions.Location = new Point(19, 1879);
         groupActions.Name = "groupActions";
-        groupActions.Padding = new Padding(4, 4, 4, 4);
-        groupActions.Size = new Size(550, 348);
+        groupActions.Size = new Size(550, 283);
         groupActions.TabIndex = 5;
         groupActions.TabStop = false;
         groupActions.Text = "生成与保存";
@@ -345,7 +312,6 @@ partial class PhaseStripeForm
         // checkTwoInOne
         //
         checkTwoInOne.Location = new Point(27, 39);
-        checkTwoInOne.Margin = new Padding(4);
         checkTwoInOne.Name = "checkTwoInOne";
         checkTwoInOne.Size = new Size(287, 29);
         checkTwoInOne.TabIndex = 0;
@@ -356,7 +322,6 @@ partial class PhaseStripeForm
         // buttonBatchTwoInOneFolder
         //
         buttonBatchTwoInOneFolder.Location = new Point(320, 34);
-        buttonBatchTwoInOneFolder.Margin = new Padding(4);
         buttonBatchTwoInOneFolder.Name = "buttonBatchTwoInOneFolder";
         buttonBatchTwoInOneFolder.Size = new Size(203, 39);
         buttonBatchTwoInOneFolder.TabIndex = 1;
@@ -367,104 +332,85 @@ partial class PhaseStripeForm
         // buttonResetDefaults
         //
         buttonResetDefaults.Location = new Point(27, 209);
-        buttonResetDefaults.Margin = new Padding(4, 4, 4, 4);
         buttonResetDefaults.Name = "buttonResetDefaults";
         buttonResetDefaults.Size = new Size(496, 51);
         buttonResetDefaults.TabIndex = 5;
-        buttonResetDefaults.Text = "恢复最初版默认参数";
+        buttonResetDefaults.Text = "恢复默认参数";
         buttonResetDefaults.UseVisualStyleBackColor = true;
         buttonResetDefaults.Click += buttonResetDefaults_Click;
-        // 
-        // buttonNonIntegerFusion
-        // 
-        buttonNonIntegerFusion.Location = new Point(27, 274);
-        buttonNonIntegerFusion.Margin = new Padding(4, 4, 4, 4);
-        buttonNonIntegerFusion.Name = "buttonNonIntegerFusion";
-        buttonNonIntegerFusion.Size = new Size(496, 51);
-        buttonNonIntegerFusion.TabIndex = 6;
-        buttonNonIntegerFusion.Text = "非整数融合与 LightTools（C#）...";
-        buttonNonIntegerFusion.UseVisualStyleBackColor = true;
-        buttonNonIntegerFusion.Click += buttonNonIntegerFusion_Click;
-        // 
+        //
         // buttonBatchExport
-        // 
+        //
         buttonBatchExport.Location = new Point(288, 144);
-        buttonBatchExport.Margin = new Padding(4, 4, 4, 4);
         buttonBatchExport.Name = "buttonBatchExport";
         buttonBatchExport.Size = new Size(236, 54);
         buttonBatchExport.TabIndex = 4;
         buttonBatchExport.Text = "批量导出完整周期";
         buttonBatchExport.UseVisualStyleBackColor = true;
         buttonBatchExport.Click += buttonBatchExport_Click;
-        // 
+        //
         // buttonSaveCurrent
-        // 
+        //
         buttonSaveCurrent.Location = new Point(27, 144);
-        buttonSaveCurrent.Margin = new Padding(4, 4, 4, 4);
         buttonSaveCurrent.Name = "buttonSaveCurrent";
         buttonSaveCurrent.Size = new Size(236, 54);
         buttonSaveCurrent.TabIndex = 3;
         buttonSaveCurrent.Text = "保存当前相位...";
         buttonSaveCurrent.UseVisualStyleBackColor = true;
         buttonSaveCurrent.Click += buttonSaveCurrent_Click;
-        // 
+        //
         // buttonPreview
-        // 
+        //
         buttonPreview.Location = new Point(27, 80);
-        buttonPreview.Margin = new Padding(4, 4, 4, 4);
         buttonPreview.Name = "buttonPreview";
         buttonPreview.Size = new Size(496, 51);
         buttonPreview.TabIndex = 2;
         buttonPreview.Text = "立即刷新预览";
         buttonPreview.UseVisualStyleBackColor = true;
         buttonPreview.Click += buttonPreview_Click;
-        // 
+        //
         // previewPanel
-        // 
+        //
         previewPanel.BackColor = SystemColors.ControlDark;
         previewPanel.Controls.Add(previewControl);
         previewPanel.Controls.Add(previewHeaderPanel);
         previewPanel.Dock = DockStyle.Fill;
         previewPanel.Location = new Point(0, 0);
-        previewPanel.Margin = new Padding(4, 4, 4, 4);
         previewPanel.Name = "previewPanel";
         previewPanel.Size = new Size(1516, 1319);
         previewPanel.TabIndex = 0;
-        // 
+        //
         // previewControl
-        // 
+        //
         previewControl.BackColor = SystemColors.Control;
         previewControl.Dock = DockStyle.Fill;
         previewControl.Location = new Point(0, 66);
-        previewControl.Margin = new Padding(6, 6, 6, 6);
         previewControl.Name = "previewControl";
         previewControl.Size = new Size(1516, 1253);
         previewControl.TabIndex = 1;
-        // 
+        //
         // previewHeaderPanel
-        // 
+        //
         previewHeaderPanel.BackColor = Color.FromArgb(42, 45, 50);
         previewHeaderPanel.Controls.Add(labelPreviewInfo);
         previewHeaderPanel.Dock = DockStyle.Top;
         previewHeaderPanel.Location = new Point(0, 0);
-        previewHeaderPanel.Margin = new Padding(4, 4, 4, 4);
         previewHeaderPanel.Name = "previewHeaderPanel";
         previewHeaderPanel.Size = new Size(1516, 66);
         previewHeaderPanel.TabIndex = 0;
-        // 
+        //
         // labelPreviewInfo
-        // 
+        //
         labelPreviewInfo.AutoSize = true;
         labelPreviewInfo.ForeColor = Color.WhiteSmoke;
         labelPreviewInfo.Location = new Point(24, 18);
-        labelPreviewInfo.Margin = new Padding(4, 0, 4, 0);
         labelPreviewInfo.Name = "labelPreviewInfo";
-        labelPreviewInfo.Size = new Size(293, 24);
+        labelPreviewInfo.Size = new Size(308, 24);
         labelPreviewInfo.TabIndex = 0;
-        labelPreviewInfo.Text = "串扰像素排列预览尚未生成";
-        // 
+        labelPreviewInfo.Text = "串扰像素排列2预览尚未生成";
+        //
         // statusStrip
-        // 
+        //
         statusStrip.ImageScalingSize = new Size(24, 24);
         statusStrip.Items.AddRange(new ToolStripItem[] { statusLabel });
         statusStrip.Location = new Point(0, 1319);
@@ -472,42 +418,41 @@ partial class PhaseStripeForm
         statusStrip.Padding = new Padding(2, 0, 21, 0);
         statusStrip.Size = new Size(2130, 31);
         statusStrip.TabIndex = 1;
-        // 
+        //
         // statusLabel
-        // 
+        //
         statusLabel.Name = "statusLabel";
         statusLabel.Size = new Size(130, 24);
         statusLabel.Text = "正在生成预览...";
-        // 
+        //
         // previewTimer
-        // 
+        //
         previewTimer.Interval = 160;
         previewTimer.Tick += previewTimer_Tick;
-        // 
+        //
         // saveFileDialog
-        // 
-        saveFileDialog.Title = "保存串扰像素排列图卡";
-        // 
+        //
+        saveFileDialog.Title = "保存串扰像素排列2图卡";
+        //
         // folderBrowserDialog
-        // 
-        folderBrowserDialog.Description = "选择串扰像素排列图卡的导出目录";
+        //
+        folderBrowserDialog.Description = "选择串扰像素排列2图卡的导出目录";
         folderBrowserDialog.UseDescriptionForTitle = true;
-        // 
-        // PhaseStripeForm
-        // 
+        //
+        // CrosstalkGridForm
+        //
         AutoScaleDimensions = new SizeF(144F, 144F);
         AutoScaleMode = AutoScaleMode.Dpi;
         ClientSize = new Size(2130, 1350);
         Controls.Add(splitContainerMain);
         Controls.Add(statusStrip);
         Font = new Font("Microsoft YaHei UI", 9F);
-        Margin = new Padding(4, 4, 4, 4);
         MinimumSize = new Size(1669, 1052);
-        Name = "PhaseStripeForm";
+        Name = "CrosstalkGridForm";
         StartPosition = FormStartPosition.CenterParent;
-        Text = "串扰像素排列";
-        FormClosing += PhaseStripeForm_FormClosing;
-        FormClosed += PhaseStripeForm_FormClosed;
+        Text = "串扰像素排列2";
+        FormClosing += CrosstalkGridForm_FormClosing;
+        FormClosed += CrosstalkGridForm_FormClosed;
         splitContainerMain.Panel1.ResumeLayout(false);
         splitContainerMain.Panel2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)splitContainerMain).EndInit();
@@ -546,7 +491,7 @@ partial class PhaseStripeForm
     private GroupBox groupRegion;
     private RegionMarginsEditor regionMarginsEditor;
     private GroupBox groupPhase;
-    private CrosstalkCycleEditor cycleEditor;
+    private CrosstalkPixelGridEditor cycleEditor;
     private NumericUpDown numericPhase;
     private Label labelPhase;
     private BorderOverlayEditor borderOverlayEditor;
@@ -560,7 +505,6 @@ partial class PhaseStripeForm
     private CheckBox checkTwoInOne;
     private Button buttonBatchTwoInOneFolder;
     private Button buttonResetDefaults;
-    private Button buttonNonIntegerFusion;
     private Button buttonBatchExport;
     private Button buttonSaveCurrent;
     private Button buttonPreview;

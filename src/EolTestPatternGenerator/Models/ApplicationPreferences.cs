@@ -16,6 +16,9 @@ public sealed class ApplicationPreferences
 
     public PhaseStripePreferences PhaseStripe { get; set; } = new();
 
+    /// <summary>“串扰像素排列2”逐位置表格页面的独立配置。</summary>
+    public CrosstalkGridPreferences CrosstalkGrid { get; set; } = new();
+
     public ScreenOnePreferences ScreenOne { get; set; } = new();
 
     /// <summary>
@@ -37,6 +40,7 @@ public sealed class ApplicationPreferences
             Workspace = (Workspace ?? new WorkspacePreferences()).Clone(),
             Main = (Main ?? new MainPreferences()).Clone(),
             PhaseStripe = (PhaseStripe ?? new PhaseStripePreferences()).Clone(),
+            CrosstalkGrid = (CrosstalkGrid ?? new CrosstalkGridPreferences()).Clone(),
             ScreenOne = (ScreenOne ?? new ScreenOnePreferences()).Clone(),
             NonIntegerBlend = (NonIntegerBlend ?? new NonIntegerBlendPreferences()).Clone(),
             StillVideo = (StillVideo ?? new StillVideoPreferences()).Clone()
@@ -52,6 +56,7 @@ public sealed class ApplicationPreferences
         Workspace ??= new WorkspacePreferences();
         Main ??= new MainPreferences();
         PhaseStripe ??= new PhaseStripePreferences();
+        CrosstalkGrid ??= new CrosstalkGridPreferences();
         ScreenOne ??= new ScreenOnePreferences();
         NonIntegerBlend ??= new NonIntegerBlendPreferences();
         StillVideo ??= new StillVideoPreferences();
@@ -59,6 +64,7 @@ public sealed class ApplicationPreferences
         Workspace.RestoreMissingSections();
         Main.RestoreMissingSections();
         PhaseStripe.RestoreMissingSections();
+        CrosstalkGrid.RestoreMissingSections();
         ScreenOne.RestoreMissingSections();
         NonIntegerBlend.RestoreMissingSections();
         StillVideo.RestoreMissingSections();
@@ -201,11 +207,20 @@ public sealed class PhaseStripePreferences
 {
     public PatternSettings Settings { get; set; } = CreateDefaultSettings();
 
+    /// <summary>将完整图卡在右侧再复制一份，输出宽度加倍。</summary>
+    public bool TwoInOne { get; set; }
+
     public ImageFormatKind OutputFormat { get; set; } = ImageFormatKind.Png;
 
     public int Quality { get; set; } = 95;
 
     public string LastExportDirectory { get; set; } = string.Empty;
+
+    /// <summary>文件夹批量二合一上次选择的源图片目录。</summary>
+    public string LastTwoInOneSourceDirectory { get; set; } = string.Empty;
+
+    /// <summary>文件夹批量二合一上次选择的输出目录。</summary>
+    public string LastTwoInOneOutputDirectory { get; set; } = string.Empty;
 
     public PreviewOverlayPreferences PreviewOverlay { get; set; } = new();
 
@@ -218,9 +233,12 @@ public sealed class PhaseStripePreferences
         return new PhaseStripePreferences
         {
             Settings = EolTestPatternGenerator.Services.PatternPresets.Create(PatternType.PhaseStripes),
+            TwoInOne = false,
             OutputFormat = ImageFormatKind.Png,
             Quality = 95,
             LastExportDirectory = string.Empty,
+            LastTwoInOneSourceDirectory = string.Empty,
+            LastTwoInOneOutputDirectory = string.Empty,
             PreviewOverlay = new PreviewOverlayPreferences()
         };
     }
@@ -230,9 +248,12 @@ public sealed class PhaseStripePreferences
         return new PhaseStripePreferences
         {
             Settings = (Settings ?? CreateDefaultSettings()).Clone(),
+            TwoInOne = TwoInOne,
             OutputFormat = OutputFormat,
             Quality = Quality,
             LastExportDirectory = LastExportDirectory ?? string.Empty,
+            LastTwoInOneSourceDirectory = LastTwoInOneSourceDirectory ?? string.Empty,
+            LastTwoInOneOutputDirectory = LastTwoInOneOutputDirectory ?? string.Empty,
             PreviewOverlay = (PreviewOverlay ?? new PreviewOverlayPreferences()).Clone()
         };
     }
@@ -245,12 +266,95 @@ public sealed class PhaseStripePreferences
         Settings.SourceImagePath ??= string.Empty;
         Settings.BorderOverlay.NormalizeLegacyGeometry(Settings.CanvasWidth, Settings.CanvasHeight);
         LastExportDirectory ??= string.Empty;
+        LastTwoInOneSourceDirectory ??= string.Empty;
+        LastTwoInOneOutputDirectory ??= string.Empty;
         PreviewOverlay ??= new PreviewOverlayPreferences();
     }
 
     private static PatternSettings CreateDefaultSettings()
     {
         return EolTestPatternGenerator.Services.PatternPresets.Create(PatternType.PhaseStripes);
+    }
+}
+
+/// <summary>
+/// “串扰像素排列2”页面的逐位置周期、当前相位和导出选项。
+/// 该节不与六种排列下拉页面共享引用，两个页面可以分别记住全部输入。
+/// </summary>
+public sealed class CrosstalkGridPreferences
+{
+    public PatternSettings Settings { get; set; } = CreateDefaultSettings();
+
+    /// <summary>将完整图卡复制到右侧，输出宽度加倍。</summary>
+    public bool TwoInOne { get; set; }
+
+    public ImageFormatKind OutputFormat { get; set; } = ImageFormatKind.Png;
+
+    public int Quality { get; set; } = 95;
+
+    public string LastExportDirectory { get; set; } = string.Empty;
+
+    /// <summary>文件夹批量二合一上次选择的源图片目录。</summary>
+    public string LastTwoInOneSourceDirectory { get; set; } = string.Empty;
+
+    /// <summary>文件夹批量二合一上次选择的输出目录。</summary>
+    public string LastTwoInOneOutputDirectory { get; set; } = string.Empty;
+
+    public PreviewOverlayPreferences PreviewOverlay { get; set; } = new();
+
+    public static CrosstalkGridPreferences CreateReferenceDefault()
+    {
+        return new CrosstalkGridPreferences
+        {
+            Settings = CreateDefaultSettings(),
+            TwoInOne = false,
+            OutputFormat = ImageFormatKind.Png,
+            Quality = 95,
+            LastExportDirectory = string.Empty,
+            LastTwoInOneSourceDirectory = string.Empty,
+            LastTwoInOneOutputDirectory = string.Empty,
+            PreviewOverlay = new PreviewOverlayPreferences()
+        };
+    }
+
+    public CrosstalkGridPreferences Clone()
+    {
+        return new CrosstalkGridPreferences
+        {
+            Settings = (Settings ?? CreateDefaultSettings()).Clone(),
+            TwoInOne = TwoInOne,
+            OutputFormat = OutputFormat,
+            Quality = Quality,
+            LastExportDirectory = LastExportDirectory ?? string.Empty,
+            LastTwoInOneSourceDirectory = LastTwoInOneSourceDirectory ?? string.Empty,
+            LastTwoInOneOutputDirectory = LastTwoInOneOutputDirectory ?? string.Empty,
+            PreviewOverlay = (PreviewOverlay ?? new PreviewOverlayPreferences()).Clone()
+        };
+    }
+
+    internal void RestoreMissingSections()
+    {
+        Settings ??= CreateDefaultSettings();
+        Settings.PatternType = PatternType.PhaseStripes;
+        Settings.PixelCycle ??= EolTestPatternGenerator.Services.CrosstalkPixelCyclePresets.CreateLegacy(
+            RgbPixelOrder.RGB);
+        Settings.BorderOverlay ??= new BorderOverlaySettings();
+        Settings.SourceImagePath ??= string.Empty;
+        Settings.BorderOverlay.NormalizeLegacyGeometry(Settings.CanvasWidth, Settings.CanvasHeight);
+        LastExportDirectory ??= string.Empty;
+        LastTwoInOneSourceDirectory ??= string.Empty;
+        LastTwoInOneOutputDirectory ??= string.Empty;
+        PreviewOverlay ??= new PreviewOverlayPreferences();
+    }
+
+    private static PatternSettings CreateDefaultSettings()
+    {
+        PatternSettings settings = EolTestPatternGenerator.Services.PatternPresets.Create(
+            PatternType.PhaseStripes);
+        settings.PixelOrder = RgbPixelOrder.RGB;
+        settings.PixelCycle = EolTestPatternGenerator.Services.CrosstalkPixelCyclePresets.CreateLegacy(
+            RgbPixelOrder.RGB);
+        return settings;
     }
 }
 

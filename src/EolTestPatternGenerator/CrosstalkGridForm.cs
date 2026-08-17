@@ -5,9 +5,9 @@ using System.ComponentModel;
 namespace EolTestPatternGenerator;
 
 /// <summary>
-/// 周期像素数可调、可选择六种 RGB 排列的“串扰像素排列”编辑和导出窗口。
+/// 以水平方向周期位置表格编辑 R/G/B 通道的“串扰像素排列2”窗口。
 /// </summary>
-public partial class PhaseStripeForm : Form
+public partial class CrosstalkGridForm : Form
 {
     private bool _updatingControls;
     private bool _isRendering;
@@ -17,39 +17,29 @@ public partial class PhaseStripeForm : Form
     private string _lastTwoInOneSourceDirectory = string.Empty;
     private string _lastTwoInOneOutputDirectory = string.Empty;
 
-    public PhaseStripeForm()
+    public CrosstalkGridForm()
     {
         InitializeComponent();
     }
 
-    /// <summary>统一工作台在两阶段关闭前只读检查后台导出状态。</summary>
+    /// <summary>统一工作台关闭前只读检查后台导出状态。</summary>
     public bool IsExporting => _isExporting;
 
-    /// <summary>
-    /// 是否把完整生成的当前图卡在右侧再复制一份。公开该状态，供统一偏好设置读写，
-    /// 控件本身仍只由 Designer 创建。
-    /// </summary>
+    /// <summary>是否把完整图卡在右侧再复制一份。</summary>
     public bool TwoInOneEnabled
     {
         get => checkTwoInOne.Checked;
         set => checkTwoInOne.Checked = value;
     }
 
-    /// <summary>
-    /// 统一工作台已经提供非整数功能的直接入口，因此嵌入时移除旧跳转按钮。
-    /// </summary>
     public void ConfigureAsWorkspacePage()
     {
-        buttonNonIntegerFusion.Visible = false;
-        groupActions.Height = 282;
-        Text = "串扰像素排列";
+        Text = "串扰像素排列2";
     }
 
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
-
-        // 设计器只需要 InitializeComponent 创建控件，不能在设计时生成 OpenCV 图像。
         if (_userInterfaceInitialized ||
             DesignMode ||
             LicenseManager.UsageMode == LicenseUsageMode.Designtime)
@@ -63,7 +53,7 @@ public partial class PhaseStripeForm : Form
 
     private void InitializeUserInterface()
     {
-        PhaseStripePreferences preferences = UserSettingsStore.Shared.Load().PhaseStripe;
+        CrosstalkGridPreferences preferences = UserSettingsStore.Shared.Load().CrosstalkGrid;
         _updatingControls = true;
         try
         {
@@ -75,7 +65,7 @@ public partial class PhaseStripeForm : Form
             SetNumericValue(numericQuality, preferences.Quality);
             previewControl.ShowCenterCrosshair = preferences.PreviewOverlay.ShowCenterCrosshair;
             previewControl.ShowPixelCoordinates = preferences.PreviewOverlay.ShowPixelCoordinates;
-            UpdateBorderCanvasSize();
+            UpdateCanvasSize();
         }
         finally
         {
@@ -94,7 +84,7 @@ public partial class PhaseStripeForm : Form
         toolTip.SetToolTip(numericCanvasHeight, "最终导出图像的像素高度。");
         toolTip.SetToolTip(
             cycleEditor,
-            "设置周期像素数、RGB 排列和倾斜角；每行位移为 3 × tan(倾斜角)。");
+            "表格每行是水平方向周期内的一个像素位置；复选框决定该位置点亮哪些通道。");
         toolTip.SetToolTip(buttonBatchExport, "依次生成当前周期的全部相位，文件名为相位序号。");
         toolTip.SetToolTip(
             checkTwoInOne,
@@ -116,7 +106,6 @@ public partial class PhaseStripeForm : Form
         folderBrowserDialog.SelectedPath = _lastExportDirectory;
     }
 
-    /// <summary>将保存的相移参数安全回写到设计器输入控件。</summary>
     private void WriteSettings(PatternSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -124,7 +113,7 @@ public partial class PhaseStripeForm : Form
         SetNumericValue(numericCanvasHeight, settings.CanvasHeight);
         regionMarginsEditor.CanvasSize = new Size(settings.CanvasWidth, settings.CanvasHeight);
         regionMarginsEditor.SetMargins(settings.GetMargins());
-        cycleEditor.SetCycle(CrosstalkPixelCyclePresets.Resolve(settings), settings.PixelOrder);
+        cycleEditor.SetCycle(CrosstalkPixelCyclePresets.Resolve(settings));
         numericPhase.Maximum = Math.Max(1, cycleEditor.PeriodLength);
         SetNumericValue(numericPhase, settings.Phase);
         borderOverlayEditor.SetSettings(settings.BorderOverlay ?? new BorderOverlaySettings());
@@ -139,7 +128,7 @@ public partial class PhaseStripeForm : Form
 
         if (ReferenceEquals(sender, numericCanvasWidth) || ReferenceEquals(sender, numericCanvasHeight))
         {
-            UpdateBorderCanvasSize();
+            UpdateCanvasSize();
         }
 
         SchedulePreview();
@@ -172,14 +161,19 @@ public partial class PhaseStripeForm : Form
         }
     }
 
-    private void UpdateBorderCanvasSize()
+    private void regionMarginsEditor_MarginsChanged(object? sender, EventArgs e)
     {
-        borderOverlayEditor.CanvasSize = new Size(
-            (int)numericCanvasWidth.Value,
-            (int)numericCanvasHeight.Value);
-        regionMarginsEditor.CanvasSize = new Size(
-            (int)numericCanvasWidth.Value,
-            (int)numericCanvasHeight.Value);
+        if (!_updatingControls)
+        {
+            SchedulePreview();
+        }
+    }
+
+    private void UpdateCanvasSize()
+    {
+        var size = new Size((int)numericCanvasWidth.Value, (int)numericCanvasHeight.Value);
+        borderOverlayEditor.CanvasSize = size;
+        regionMarginsEditor.CanvasSize = size;
     }
 
     private void UpdateControlAvailability()
@@ -188,7 +182,6 @@ public partial class PhaseStripeForm : Form
         bool usesQuality = format is ImageFormatKind.Jpeg or ImageFormatKind.WebP;
         numericQuality.Enabled = usesQuality;
         labelQuality.Enabled = usesQuality;
-
         labelExportHelp.Text = usesQuality
             ? "JPEG/WebP 可能改变精确的 0/255 像素；保存时会提示改用 PNG。"
             : "PNG、BMP、TIFF 为无损格式，可保持图卡的精确 0/255 像素。";
@@ -207,14 +200,11 @@ public partial class PhaseStripeForm : Form
             CanvasWidth = (int)numericCanvasWidth.Value,
             CanvasHeight = (int)numericCanvasHeight.Value,
             Phase = phase ?? (int)numericPhase.Value,
+            PixelOrder = RgbPixelOrder.RGB,
             PixelCycle = cycleEditor.GetCycle(),
             BorderOverlay = borderOverlayEditor.GetSettings()
         };
         settings.SetMargins(regionMarginsEditor.GetMargins());
-
-        // 精简界面只会产生六种排列预设；始终同步旧枚举，使旧版本也能读到当前排列。
-        settings.PixelOrder = cycleEditor.SelectedOrder;
-
         return settings;
     }
 
@@ -252,24 +242,19 @@ public partial class PhaseStripeForm : Form
         }
     }
 
-    /// <summary>
-    /// 只恢复串扰页面最初版的参数快照，不读取基础图卡或其他子页面的当前值。
-    /// 上次导出目录仍然保留，避免“恢复参数”意外清除用户的文件夹记忆。
-    /// </summary>
     private void buttonResetDefaults_Click(object? sender, EventArgs e)
     {
-        PhaseStripePreferences defaults = PhaseStripePreferences.CreateReferenceDefault();
-
+        CrosstalkGridPreferences defaults = CrosstalkGridPreferences.CreateReferenceDefault();
         _updatingControls = true;
         try
         {
             WriteSettings(defaults.Settings);
-            TwoInOneEnabled = false;
+            TwoInOneEnabled = defaults.TwoInOne;
             comboOutputFormat.SelectedIndex = (int)defaults.OutputFormat;
             SetNumericValue(numericQuality, defaults.Quality);
             previewControl.ShowCenterCrosshair = defaults.PreviewOverlay.ShowCenterCrosshair;
             previewControl.ShowPixelCoordinates = defaults.PreviewOverlay.ShowPixelCoordinates;
-            UpdateBorderCanvasSize();
+            UpdateCanvasSize();
         }
         finally
         {
@@ -279,15 +264,7 @@ public partial class PhaseStripeForm : Form
         UpdateControlAvailability();
         if (UpdatePreview(resetView: true))
         {
-            statusLabel.Text = "已恢复串扰默认参数（1920 × 1080、RGB 固定 8 像素周期、18.435°）。";
-        }
-    }
-
-    private void regionMarginsEditor_MarginsChanged(object? sender, EventArgs e)
-    {
-        if (!_updatingControls)
-        {
-            SchedulePreview();
+            statusLabel.Text = "已恢复默认参数（8 像素 RGB 掩码、横向步进 -3、倾斜角 18.435°）。";
         }
     }
 
@@ -306,22 +283,20 @@ public partial class PhaseStripeForm : Form
         _isRendering = true;
         previewTimer.Stop();
         UseWaitCursor = true;
-
         try
         {
             PatternSettings settings = ReadSettings();
-            double tiltAngle = settings.PixelCycle!.ResolveTiltAngleDegrees();
+            CrosstalkPixelCycle cycle = settings.PixelCycle!;
             using var image = GenerateOutputImage(settings, TwoInOneEnabled);
             Bitmap bitmap = MatBitmapConverter.ToBitmap(image);
             previewControl.SetImage(bitmap, preserveView: !resetView);
-
             labelPreviewInfo.Text =
                 $"预览：{image.Cols:N0} × {image.Rows:N0} | " +
-                $"相位 {settings.Phase}/{cycleEditor.PeriodLength} | 倾斜角 {tiltAngle:0.######}°" +
+                $"相位 {settings.Phase}/{cycle.PeriodLength} | 横向步进 {cycle.ColumnAdvance} | " +
+                $"倾斜角 {cycle.ResolveTiltAngleDegrees():0.######}°" +
                 (TwoInOneEnabled ? " | 二合一" : string.Empty);
             statusLabel.Text =
-                $"就绪 | 周期 {cycleEditor.PeriodLength} 像素 | " +
-                $"输出 {image.Cols:N0} × {image.Rows:N0} | " +
+                $"就绪 | 周期 {cycle.PeriodLength} 像素 | 输出 {image.Cols:N0} × {image.Rows:N0} | " +
                 $"图案 {settings.CalculatedOuterWidth:N0} × {settings.CalculatedOuterHeight:N0}";
             return true;
         }
@@ -346,12 +321,12 @@ public partial class PhaseStripeForm : Form
 
         DialogResult result = MessageBox.Show(
             this,
-            "串扰像素排列图要求颜色通道只含 0 和 255。JPEG/WebP 的当前编码方式可能改变像素值。\n\n是否切换为无损 PNG 后继续？",
+            "串扰像素排列图要求颜色通道只含 0 和 255。JPEG/WebP 的当前编码方式可能改变像素值。\n\n" +
+            "是否切换为无损 PNG 后继续？",
             "请选择无损格式",
             MessageBoxButtons.YesNo,
             MessageBoxIcon.Warning,
             MessageBoxDefaultButton.Button1);
-
         if (result != DialogResult.Yes)
         {
             return false;
@@ -371,12 +346,10 @@ public partial class PhaseStripeForm : Form
         PatternSettings settings = ReadSettings();
         ImageExportOptions exportOptions = ReadExportOptions();
         string extension = ImageFileWriter.GetExtension(exportOptions.Format);
-
         saveFileDialog.Filter = ImageFileWriter.GetDialogFilter(exportOptions.Format);
         saveFileDialog.DefaultExt = extension.TrimStart('.');
         saveFileDialog.FileName = $"{settings.Phase}{extension}";
         ApplyExportDialogInitialDirectory();
-
         if (saveFileDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
@@ -385,7 +358,6 @@ public partial class PhaseStripeForm : Form
         _lastExportDirectory = DialogDirectoryResolver.RememberFileDirectory(
             saveFileDialog.FileName,
             _lastExportDirectory);
-
         try
         {
             string targetPath = ImageFileWriter.NormalizePath(saveFileDialog.FileName, exportOptions.Format);
@@ -427,7 +399,7 @@ public partial class PhaseStripeForm : Form
         }
 
         ApplyExportDialogInitialDirectory();
-        folderBrowserDialog.Description = "选择串扰像素排列图卡的导出目录";
+        folderBrowserDialog.Description = "选择串扰像素排列2图卡的导出目录";
         if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
@@ -436,14 +408,14 @@ public partial class PhaseStripeForm : Form
         _lastExportDirectory = DialogDirectoryResolver.RememberDirectory(
             folderBrowserDialog.SelectedPath,
             _lastExportDirectory);
-
         ImageExportOptions exportOptions = ReadExportOptions();
         string outputDirectory = folderBrowserDialog.SelectedPath;
         string extension = ImageFileWriter.GetExtension(exportOptions.Format);
         int phaseCount = cycleEditor.PeriodLength;
         bool twoInOne = TwoInOneEnabled;
-        // 开始后台任务前冻结完整周期的全部设置，避免用户操作改变正在导出的批次。
-        PatternSettings[] settings = Enumerable.Range(1, phaseCount).Select(phase => ReadSettings(phase)).ToArray();
+        PatternSettings[] settings = Enumerable.Range(1, phaseCount)
+            .Select(phase => ReadSettings(phase))
+            .ToArray();
         string[] targetPaths = settings
             .Select(item => Path.Combine(outputDirectory, $"{item.Phase}{extension}"))
             .ToArray();
@@ -468,14 +440,12 @@ public partial class PhaseStripeForm : Form
         groupActions.Enabled = false;
         UseWaitCursor = true;
         statusLabel.Text = $"正在批量导出相位 1–{phaseCount}...";
-
         try
         {
             IReadOnlyList<string> paths = await Task.Run(() =>
             {
                 Directory.CreateDirectory(outputDirectory);
                 var exported = new List<string>(phaseCount);
-
                 foreach (PatternSettings item in settings)
                 {
                     using var image = GenerateOutputImage(item, twoInOne);
@@ -676,16 +646,7 @@ public partial class PhaseStripeForm : Form
             MessageBoxIcon.Warning);
     }
 
-    private void buttonNonIntegerFusion_Click(object? sender, EventArgs e)
-    {
-        using var form = new NonIntegerFusionForm();
-        form.ShowDialog(this);
-    }
-
-    /// <summary>
-    /// 先生成包含白框的完整图卡，再按开关决定是否水平复制。
-    /// 返回的 Mat 统一由调用方 using 释放；组合时也会立即释放中间图像。
-    /// </summary>
+    /// <summary>先生成包含白框的整张图，再按开关把它逐像素复制到右侧。</summary>
     private static OpenCvSharp.Mat GenerateOutputImage(PatternSettings settings, bool twoInOne)
     {
         OpenCvSharp.Mat image = PatternGenerator.Generate(settings);
@@ -704,7 +665,7 @@ public partial class PhaseStripeForm : Form
         }
     }
 
-    private void PhaseStripeForm_FormClosing(object? sender, FormClosingEventArgs e)
+    private void CrosstalkGridForm_FormClosing(object? sender, FormClosingEventArgs e)
     {
         if (_isExporting)
         {
@@ -723,7 +684,7 @@ public partial class PhaseStripeForm : Form
 
     private void SaveUserPreferences()
     {
-        var preferences = new PhaseStripePreferences
+        var preferences = new CrosstalkGridPreferences
         {
             Settings = ReadSettings(),
             TwoInOne = TwoInOneEnabled,
@@ -740,7 +701,7 @@ public partial class PhaseStripeForm : Form
         };
 
         if (!UserSettingsStore.Shared.TryUpdateAndSave(
-                root => root.PhaseStripe = preferences,
+                root => root.CrosstalkGrid = preferences,
                 out Exception? error))
         {
             MessageBox.Show(
@@ -752,7 +713,7 @@ public partial class PhaseStripeForm : Form
         }
     }
 
-    private void PhaseStripeForm_FormClosed(object? sender, FormClosedEventArgs e)
+    private void CrosstalkGridForm_FormClosed(object? sender, FormClosedEventArgs e)
     {
         previewTimer.Stop();
     }

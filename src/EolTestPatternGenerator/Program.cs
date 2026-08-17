@@ -13,6 +13,9 @@ internal static class Program
         if (args.Length >= 1 && args[0].Equals("--self-test", StringComparison.OrdinalIgnoreCase))
         {
             GeneratedPatternVerifier.RunAll();
+            HorizontalImageComposerVerifier.Run();
+            BatchBorderImageExporterVerifier.RunAll();
+            BatchTwoInOneImageExporterVerifier.RunAll();
             ProjectionVerifier.RunAll();
             StillVideoVerifier.VerifyGeometryAndScheduling();
             Console.WriteLine("图卡像素自检通过。");
@@ -33,10 +36,12 @@ internal static class Program
             using var workspaceForm = new WorkspaceForm();
             using var mainForm = new MainForm();
             using var phaseStripeForm = new PhaseStripeForm();
+            using var crosstalkGridForm = new CrosstalkGridForm();
             using var screenOneForm = new ScreenOneForm();
             using var nonIntegerFusionForm = new NonIntegerFusionForm();
             using var previewControl = new ImagePreviewControl();
             using var cycleEditor = new CrosstalkCycleEditor();
+            using var gridCycleEditor = new CrosstalkPixelGridEditor();
             using var stillVideoPage = new StillVideoPage();
             using var stillVideoHost = new Form
             {
@@ -154,11 +159,43 @@ internal static class Program
                 throw new InvalidOperationException("与周期不匹配的首选排列被错误采用。");
             }
 
+            // 第二个串扰页面以表格逐项编辑水平方向周期，不再包含 RGB/RBG 下拉框。
+            gridCycleEditor.SetCycle(new CrosstalkPixelCycle
+            {
+                Pixels = [RgbChannelMask.Red, RgbChannelMask.Green | RgbChannelMask.Blue],
+                ColumnAdvance = -3,
+                TiltAngleDegrees = -12.5d
+            });
+            CrosstalkPixelCycle customGridCycle = gridCycleEditor.GetCycle();
+            DataGridView cycleGrid = FindRequiredControl<DataGridView>(gridCycleEditor, "gridCycle");
+            NumericUpDown gridPeriod = FindRequiredControl<NumericUpDown>(gridCycleEditor, "numericPeriodLength");
+            NumericUpDown columnAdvance = FindRequiredControl<NumericUpDown>(gridCycleEditor, "numericColumnAdvance");
+            NumericUpDown tiltAngle = FindRequiredControl<NumericUpDown>(gridCycleEditor, "numericTiltAngle");
+            Button advanceHelp = FindRequiredControl<Button>(gridCycleEditor, "buttonColumnAdvanceHelp");
+            if (customGridCycle.PeriodLength != 2 || customGridCycle.ColumnAdvance != -3 ||
+                customGridCycle.ResolveTiltAngleDegrees() != -12.5d || cycleGrid.Rows.Count != 2 ||
+                !Convert.ToBoolean(cycleGrid.Rows[0].Cells[1].Value) ||
+                Convert.ToBoolean(cycleGrid.Rows[0].Cells[2].Value) ||
+                Convert.ToBoolean(cycleGrid.Rows[0].Cells[3].Value) ||
+                Convert.ToInt32(cycleGrid.Rows[1].Cells[0].Value) != 2 ||
+                Convert.ToBoolean(cycleGrid.Rows[1].Cells[1].Value) ||
+                !Convert.ToBoolean(cycleGrid.Rows[1].Cells[2].Value) ||
+                !Convert.ToBoolean(cycleGrid.Rows[1].Cells[3].Value) ||
+                cycleGrid.Columns[0].HeaderText != "周期内像素序号" ||
+                gridPeriod.Minimum != 1 || gridPeriod.Maximum != 1024 ||
+                columnAdvance.Value != -3 || tiltAngle.Minimum != -89 || tiltAngle.Maximum != 89 ||
+                advanceHelp.Text != "?" || gridCycleEditor.Controls.Find("comboLegacyPreset", true).Length != 0)
+            {
+                throw new InvalidOperationException("串扰像素排列2没有按水平方向周期逐项保留 RGB 通道或步进参数。");
+            }
+
             // Show 会触发与真实运行一致的 OnLoad；立即隐藏，自动验证三个窗体及 OpenCV 预览。
             ShowAndHide(mainForm);
             VerifyMainDotSingleAxisSynchronization(mainForm);
             ShowAndHide(phaseStripeForm);
             VerifyPhaseStripeResetDefaults(phaseStripeForm);
+            ShowAndHide(crosstalkGridForm);
+            VerifyBatchTwoInOneButtons(phaseStripeForm, crosstalkGridForm);
             ShowAndHide(screenOneForm);
             ShowAndHide(nonIntegerFusionForm);
             ShowAndHide(stillVideoHost);
@@ -169,6 +206,7 @@ internal static class Program
 
             if (mainForm.IsExporting ||
                 phaseStripeForm.IsExporting ||
+                crosstalkGridForm.IsExporting ||
                 screenOneForm.IsExporting ||
                 nonIntegerFusionForm.IsExporting)
             {
@@ -254,6 +292,7 @@ internal static class Program
         quality.Value = 42;
         preview.ShowCenterCrosshair = false;
         preview.ShowPixelCoordinates = false;
+        form.TwoInOneEnabled = true;
 
         reset.PerformClick();
         Application.DoEvents();
@@ -270,12 +309,30 @@ internal static class Program
             !CrosstalkPixelCyclePresets.TryGetLegacyOrder(restoredCycle, out RgbPixelOrder order) ||
             order != RgbPixelOrder.RGB || restoredBorder.Enabled || restoredBorder.LineWidth != 5 ||
             format.SelectedIndex != (int)ImageFormatKind.Png || quality.Value != 95 ||
+            form.TwoInOneEnabled ||
             !preview.ShowCenterCrosshair || !preview.ShowPixelCoordinates)
         {
             throw new InvalidOperationException("串扰页面的恢复默认按钮未恢复最初版完整参数。");
         }
 
         form.Hide();
+    }
+
+    private static void VerifyBatchTwoInOneButtons(
+        PhaseStripeForm phaseStripeForm,
+        CrosstalkGridForm crosstalkGridForm)
+    {
+        Button phaseButton = FindRequiredControl<Button>(
+            phaseStripeForm,
+            "buttonBatchTwoInOneFolder");
+        Button gridButton = FindRequiredControl<Button>(
+            crosstalkGridForm,
+            "buttonBatchTwoInOneFolder");
+        const string expectedText = "文件夹图片批量二合一...";
+        if (phaseButton.Text != expectedText || gridButton.Text != expectedText)
+        {
+            throw new InvalidOperationException("两个串扰页面没有保留 Designer 可编辑的文件夹批量二合一入口。");
+        }
     }
 
     /// <summary>
@@ -289,6 +346,7 @@ internal static class Program
             "基础图卡",
             "3D显示器图卡",
             "串扰像素排列",
+            "串扰像素排列2",
             "非整数连续融合",
             "离散光源",
             "图片转 LightTools",
@@ -299,6 +357,7 @@ internal static class Program
             typeof(MainForm),
             typeof(ScreenOneForm),
             typeof(PhaseStripeForm),
+            typeof(CrosstalkGridForm),
             typeof(NonIntegerFusionForm),
             typeof(NonIntegerFusionForm),
             typeof(NonIntegerFusionForm),
@@ -309,13 +368,14 @@ internal static class Program
             WorkspaceNavigationPages.BasicPatterns,
             WorkspaceNavigationPages.DisplayCards,
             WorkspaceNavigationPages.CrosstalkPixels,
+            WorkspaceNavigationPages.CrosstalkPixelsGrid,
             WorkspaceNavigationPages.ContinuousFusion,
             WorkspaceNavigationPages.DiscreteLightSource,
             WorkspaceNavigationPages.ImageToLightTools,
             WorkspaceNavigationPages.ImageToVideo
         ];
 
-        // 旧 v2 只保存序号，旧 1/2 分别是串扰/显示器；新配置用稳定标识消除二次交换。
+        // 旧 v2 只保存序号，旧 1/2 分别是串扰/显示器，旧 3–6 在新增页后统一后移。
         var legacyCrosstalk = new WorkspacePreferences { SelectedNavigationIndex = 1 };
         var legacyDisplay = new WorkspacePreferences { SelectedNavigationIndex = 2 };
         var migratedCrosstalk = new WorkspacePreferences
@@ -328,8 +388,10 @@ internal static class Program
             SelectedNavigationIndex = 1,
             SelectedNavigationPageId = WorkspaceNavigationPages.DisplayCards
         };
+        var legacyContinuous = new WorkspacePreferences { SelectedNavigationIndex = 3 };
         if (WorkspaceNavigationPages.ResolveSelectedIndex(legacyCrosstalk, expectedTitles.Length) != 2 ||
             WorkspaceNavigationPages.ResolveSelectedIndex(legacyDisplay, expectedTitles.Length) != 1 ||
+            WorkspaceNavigationPages.ResolveSelectedIndex(legacyContinuous, expectedTitles.Length) != 4 ||
             WorkspaceNavigationPages.ResolveSelectedIndex(migratedCrosstalk, expectedTitles.Length) != 2 ||
             WorkspaceNavigationPages.ResolveSelectedIndex(migratedDisplay, expectedTitles.Length) != 1 ||
             Enumerable.Range(0, expectedPageIds.Length)
@@ -395,10 +457,10 @@ internal static class Program
                         $"工作台导航“{expectedTitles[index]}”打开了错误的功能页。");
                 }
 
-                if (index is >= 3 and <= 5)
+                if (index is >= 4 and <= 6)
                 {
                     TabControl sections = FindRequiredControl<TabControl>(activePage, "tabModes");
-                    if (sections.SelectedIndex != index - 3)
+                    if (sections.SelectedIndex != index - 4)
                     {
                         throw new InvalidOperationException(
                             $"工作台导航“{expectedTitles[index]}”定位到了错误的内部功能区。");

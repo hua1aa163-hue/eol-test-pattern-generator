@@ -6,7 +6,8 @@ namespace EolTestPatternGenerator.Services;
 /// <summary>在生成结果最后叠加可裁剪的白色矩形框，不改变画布尺寸。</summary>
 public static class BorderOverlayRenderer
 {
-    private static readonly Scalar White = new(255, 255, 255);
+    // Scalar.All 同时把 BGRA 的透明度写成 255；三通道和灰度图仍得到同样的纯白值。
+    private static readonly Scalar White = Scalar.All(255);
 
     public static void Apply(Mat image, BorderOverlaySettings settings)
     {

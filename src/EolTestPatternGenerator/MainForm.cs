@@ -80,6 +80,9 @@ public partial class MainForm : Form
         toolTip.SetToolTip(numericPatternHeight, "点阵第一个到最后一个圆心的垂直距离。");
         toolTip.SetToolTip(numericDotRadius, "半径 4 对应 9 像素直径；半径 0 对应单像素点。");
         toolTip.SetToolTip(buttonBatchExport, "生成 10 张基础图卡；串扰像素排列与显示器图卡请使用对应功能页导出。");
+        toolTip.SetToolTip(
+            buttonBatchAddBorder,
+            "选择源图片文件夹和独立输出文件夹，按当前白框四边距与线宽批量处理当前层图片；多页 TIFF 会明确列为失败。");
         toolTip.SetToolTip(buttonPhaseTool, "打开串扰像素排列，可调整周期像素数并选择六种 RGB 排列和倾斜角。");
         toolTip.SetToolTip(buttonExportScreen1, "打开显示器图卡编辑页，可调整画布及左右区域的外缘四边距。");
 
@@ -633,6 +636,7 @@ public partial class MainForm : Form
         }
 
         ApplyDialogInitialDirectories();
+        folderBrowserDialog.Description = "选择批量导出目录";
         if (folderBrowserDialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
@@ -680,6 +684,173 @@ public partial class MainForm : Form
         {
             EndExport();
         }
+    }
+
+    /// <summary>
+    /// 使用基础页当前白框四边距和线宽，批量处理源文件夹当前层的全部受支持图片。
+    /// 源、输出目录分别选择并分别复用导入目录/导出目录的上次输入记录。
+    /// </summary>
+    private async void buttonBatchAddBorder_Click(object? sender, EventArgs e)
+    {
+        string? sourceDirectory = SelectBatchBorderDirectory(
+            "选择要批量添加白框的源图片文件夹",
+            _lastImportedImageDirectory);
+        if (sourceDirectory is null)
+        {
+            return;
+        }
+
+        _lastImportedImageDirectory = DialogDirectoryResolver.RememberDirectory(
+            sourceDirectory,
+            _lastImportedImageDirectory);
+
+        string? outputDirectory = SelectBatchBorderDirectory(
+            "选择白框图片输出文件夹（不能与源文件夹相同）",
+            _lastExportDirectory);
+        if (outputDirectory is null)
+        {
+            return;
+        }
+
+        _lastExportDirectory = DialogDirectoryResolver.RememberDirectory(
+            outputDirectory,
+            _lastExportDirectory);
+        ApplyDialogInitialDirectories();
+
+        BatchBorderExportPlan plan;
+        try
+        {
+            plan = BatchBorderImageExporter.CreatePlan(sourceDirectory, outputDirectory);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(
+                this,
+                exception.Message,
+                "无法开始批量加白框",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            statusLabel.Text = $"批量加白框未开始：{exception.Message}";
+            return;
+        }
+
+        if (plan.Items.Count == 0)
+        {
+            MessageBox.Show(
+                this,
+                "源文件夹当前层没有可处理的 PNG、JPEG、BMP、TIFF 或 WebP 图片。",
+                "没有可处理图片",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            statusLabel.Text = "批量加白框未开始：源文件夹当前层没有受支持的图片。";
+            return;
+        }
+
+        bool overwriteExisting = false;
+        if (plan.ExistingOutputPaths.Count > 0)
+        {
+            string existingNames = string.Join(
+                "\n",
+                plan.ExistingOutputPaths.Take(8).Select(Path.GetFileName));
+            string remainingText = plan.ExistingOutputPaths.Count > 8
+                ? $"\n……另有 {plan.ExistingOutputPaths.Count - 8} 个同名文件"
+                : string.Empty;
+            DialogResult overwriteResult = MessageBox.Show(
+                this,
+                $"输出文件夹已有 {plan.ExistingOutputPaths.Count} 个同名文件：\n\n" +
+                $"{existingNames}{remainingText}\n\n是否在本批次中覆盖这些同名文件？",
+                "确认批量覆盖",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning,
+                MessageBoxDefaultButton.Button2);
+            if (overwriteResult != DialogResult.Yes)
+            {
+                statusLabel.Text = "已取消批量加白框：没有覆盖现有文件。";
+                return;
+            }
+
+            overwriteExisting = true;
+        }
+
+        BorderOverlaySettings border = borderOverlayEditor.GetSettings();
+        border.Enabled = true;
+        int lossyQuality = (int)numericQuality.Value;
+        var progress = new Progress<BatchBorderExportProgress>(item =>
+        {
+            statusLabel.Text =
+                $"正在批量加白框：{item.CompletedCount}/{item.TotalCount} | {item.FileName}";
+        });
+
+        BeginExport();
+        statusLabel.Text = $"正在批量加白框：0/{plan.Items.Count}";
+        try
+        {
+            BatchBorderExportResult result = await Task.Run(() => BatchBorderImageExporter.Export(
+                plan,
+                border,
+                lossyQuality,
+                overwriteExisting,
+                progress));
+
+            if (result.Failures.Count == 0)
+            {
+                statusLabel.Text =
+                    $"批量加白框完成：{result.OutputPaths.Count} 张，目录 {plan.OutputDirectory}";
+                MessageBox.Show(
+                    this,
+                    $"已为 {result.OutputPaths.Count} 张图片添加白框。\n" +
+                    $"输出目录：{plan.OutputDirectory}\n\n" +
+                    "每张图片均保留原文件名和原图片格式，源图片未修改；多页 TIFF 不会被静默截取。",
+                    "批量加白框完成",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            else
+            {
+                string failureDetails = string.Join(
+                    "\n",
+                    result.Failures.Take(8).Select(failure =>
+                        $"{Path.GetFileName(failure.SourcePath)}：{failure.ErrorMessage}"));
+                string remainingText = result.Failures.Count > 8
+                    ? $"\n……另有 {result.Failures.Count - 8} 张失败"
+                    : string.Empty;
+                statusLabel.Text =
+                    $"批量加白框完成：成功 {result.OutputPaths.Count} 张，失败 {result.Failures.Count} 张。";
+                MessageBox.Show(
+                    this,
+                    $"成功：{result.OutputPaths.Count} 张\n失败：{result.Failures.Count} 张\n\n" +
+                    $"{failureDetails}{remainingText}\n\n输出目录：{plan.OutputDirectory}",
+                    "批量加白框存在失败项",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show(
+                this,
+                exception.Message,
+                "批量加白框失败",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            statusLabel.Text = $"批量加白框失败：{exception.Message}";
+        }
+        finally
+        {
+            EndExport();
+        }
+    }
+
+    private string? SelectBatchBorderDirectory(string description, string rememberedDirectory)
+    {
+        string initialDirectory = DialogDirectoryResolver.ResolveExistingDirectory(rememberedDirectory);
+        folderBrowserDialog.Description = description;
+        folderBrowserDialog.InitialDirectory = initialDirectory;
+        folderBrowserDialog.SelectedPath = initialDirectory;
+        folderBrowserDialog.UseDescriptionForTitle = true;
+        return folderBrowserDialog.ShowDialog(this) == DialogResult.OK
+            ? folderBrowserDialog.SelectedPath
+            : null;
     }
 
     private ImageExportOptions ReadExportOptions()
