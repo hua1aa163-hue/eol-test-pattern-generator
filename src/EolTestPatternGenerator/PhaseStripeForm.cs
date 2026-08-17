@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace EolTestPatternGenerator;
 
 /// <summary>
-/// 可配置周期与逐像素 RGB 通道的“串扰像素排列”编辑和导出窗口。
+/// 固定 8 像素周期、可选择六种 RGB 排列的“串扰像素排列”编辑和导出窗口。
 /// </summary>
 public partial class PhaseStripeForm : Form
 {
@@ -77,8 +77,8 @@ public partial class PhaseStripeForm : Form
         toolTip.SetToolTip(numericCanvasHeight, "最终导出图像的像素高度。");
         toolTip.SetToolTip(
             cycleEditor,
-            "设置周期像素数、逐像素 R/G/B 通道及倾斜角；每行位移为 3 × tan(倾斜角)。横向步进不为 -3 时，视觉斜率也会随之变化。");
-        toolTip.SetToolTip(buttonBatchExport, "使用当前周期依次生成全部相位，文件名为相位序号。");
+            "选择固定 8 像素周期的 RGB 排列和倾斜角；每行位移为 3 × tan(倾斜角)。");
+        toolTip.SetToolTip(buttonBatchExport, "依次生成固定周期的 8 个相位，文件名为相位序号。");
         toolTip.SetToolTip(previewControl, "鼠标滚轮缩放；按住鼠标左键拖动图像。");
 
         UpdateControlAvailability();
@@ -188,11 +188,8 @@ public partial class PhaseStripeForm : Form
         };
         settings.SetMargins(regionMarginsEditor.GetMargins());
 
-        // 同时写入可识别的旧预设枚举，使较旧版本读取新配置时仍有合理回退。
-        if (CrosstalkPixelCyclePresets.TryGetLegacyOrder(settings.PixelCycle, out RgbPixelOrder legacyOrder))
-        {
-            settings.PixelOrder = legacyOrder;
-        }
+        // 精简界面只会产生六种固定预设；始终同步旧枚举，使旧版本也能读到当前排列。
+        settings.PixelOrder = CrosstalkPixelCyclePresets.FindNearestLegacyOrder(settings.PixelCycle);
 
         return settings;
     }
@@ -249,7 +246,7 @@ public partial class PhaseStripeForm : Form
         UpdateControlAvailability();
         if (UpdatePreview(resetView: true))
         {
-            statusLabel.Text = "已恢复最初版串扰参数（1920 × 1080、旧版 RGB 8 像素周期、18.435°）。";
+            statusLabel.Text = "已恢复串扰默认参数（1920 × 1080、RGB 固定 8 像素周期、18.435°）。";
         }
     }
 

@@ -80,7 +80,7 @@ public partial class MainForm : Form
         toolTip.SetToolTip(numericPatternHeight, "点阵第一个到最后一个圆心的垂直距离。");
         toolTip.SetToolTip(numericDotRadius, "半径 4 对应 9 像素直径；半径 0 对应单像素点。");
         toolTip.SetToolTip(buttonBatchExport, "生成 10 张基础图卡；串扰像素排列与显示器图卡请使用对应功能页导出。");
-        toolTip.SetToolTip(buttonPhaseTool, "打开串扰像素排列，可配置周期内每个位置点亮的 R/G/B 通道。");
+        toolTip.SetToolTip(buttonPhaseTool, "打开串扰像素排列，可选择固定 8 像素周期的六种 RGB 排列和倾斜角。");
         toolTip.SetToolTip(buttonExportScreen1, "打开显示器图卡编辑页，可调整画布及左右区域的外缘四边距。");
 
         ResetProfilesToDefaults();

@@ -1339,6 +1339,10 @@ public static class GeneratedPatternVerifier
             writer.UpdateAndSave(preferences =>
             {
                 preferences.Workspace.SelectedNavigationIndex = 6;
+                preferences.Workspace.SelectedNavigationPageId = WorkspaceNavigationPages.ImageToVideo;
+                preferences.Workspace.ProjectionTopology =
+                    EolTestPatternGenerator.Projection.DisplayTopology.Extend;
+                preferences.Workspace.RestoreWallpaperOnStop = false;
                 preferences.Main.Quality = 42;
                 preferences.Main.LastImportedImageDirectory = @"C:\图卡\输入";
                 preferences.Main.LastExportDirectory = @"D:\图卡\主界面输出";
@@ -1359,6 +1363,10 @@ public static class GeneratedPatternVerifier
             var reader = new UserSettingsStore(settingsPath);
             ApplicationPreferences loaded = reader.Load();
             if (loaded.Workspace.SelectedNavigationIndex != 6 ||
+                loaded.Workspace.SelectedNavigationPageId != WorkspaceNavigationPages.ImageToVideo ||
+                loaded.Workspace.ProjectionTopology !=
+                    EolTestPatternGenerator.Projection.DisplayTopology.Extend ||
+                loaded.Workspace.RestoreWallpaperOnStop ||
                 loaded.Main.Quality != 42 ||
                 !string.Equals(loaded.Main.LastImportedImageDirectory, @"C:\图卡\输入", StringComparison.Ordinal) ||
                 !string.Equals(loaded.Main.LastExportDirectory, @"D:\图卡\主界面输出", StringComparison.Ordinal) ||
@@ -1385,11 +1393,15 @@ public static class GeneratedPatternVerifier
 
             loaded.Main.Quality = 7;
             loaded.Workspace.SelectedNavigationIndex = 1;
+            loaded.Workspace.ProjectionTopology =
+                EolTestPatternGenerator.Projection.DisplayTopology.Internal;
             loaded.Main.LastExportDirectory = @"E:\被修改";
             loaded.PhaseStripe.Settings.PixelCycle!.Pixels[0] = RgbChannelMask.All;
             ApplicationPreferences unchanged = reader.Load();
             if (unchanged.Main.Quality != 42 ||
                 unchanged.Workspace.SelectedNavigationIndex != 6 ||
+                unchanged.Workspace.ProjectionTopology !=
+                    EolTestPatternGenerator.Projection.DisplayTopology.Extend ||
                 !string.Equals(unchanged.Main.LastExportDirectory, @"D:\图卡\主界面输出", StringComparison.Ordinal))
             {
                 throw new InvalidOperationException("设置仓库 Load 返回了共享的可变对象，而不是深副本。");

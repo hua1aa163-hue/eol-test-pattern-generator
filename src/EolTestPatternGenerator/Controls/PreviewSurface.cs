@@ -51,6 +51,9 @@ public sealed class PreviewSurface : Control
     public float Zoom => _zoom;
 
     [Browsable(false)]
+    internal bool HasImage => _image is not null;
+
+    [Browsable(false)]
     public Point? MousePixel => _mousePixel;
 
     [Category("辅助显示")]
@@ -128,6 +131,15 @@ public sealed class PreviewSurface : Control
         RecalculateMousePixel();
         Invalidate();
         OnViewChanged();
+    }
+
+    /// <summary>
+    /// 返回当前原始预览图的独立副本。副本不包含十字线、坐标等预览叠加层，
+    /// 调用方负责释放；没有图片时返回 <see langword="null"/>。
+    /// </summary>
+    internal Bitmap? CloneImage()
+    {
+        return _image is null ? null : new Bitmap(_image);
     }
 
     public void FitToWindow()

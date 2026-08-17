@@ -27,11 +27,21 @@ partial class WorkspaceForm
         contentPanel = new Panel();
         pageHost = new Panel();
         pageHeaderPanel = new Panel();
+        projectionPanel = new Panel();
+        labelProjection = new Label();
+        comboProjectionTopology = new ComboBox();
+        buttonApplyTopology = new Button();
+        buttonProjectCurrent = new Button();
+        checkLiveProjection = new CheckBox();
+        buttonStopProjection = new Button();
+        checkRestoreWallpaper = new CheckBox();
+        labelProjectionStatus = new Label();
         labelPageDescription = new Label();
         labelPageTitle = new Label();
         navigationPanel.SuspendLayout();
         contentPanel.SuspendLayout();
         pageHeaderPanel.SuspendLayout();
+        projectionPanel.SuspendLayout();
         SuspendLayout();
         //
         // navigationPanel
@@ -109,6 +119,7 @@ partial class WorkspaceForm
         // pageHeaderPanel
         //
         pageHeaderPanel.BackColor = Color.White;
+        pageHeaderPanel.Controls.Add(projectionPanel);
         pageHeaderPanel.Controls.Add(labelPageDescription);
         pageHeaderPanel.Controls.Add(labelPageTitle);
         pageHeaderPanel.Dock = DockStyle.Top;
@@ -117,6 +128,106 @@ partial class WorkspaceForm
         pageHeaderPanel.Padding = new Padding(24, 10, 24, 8);
         pageHeaderPanel.Size = new Size(1635, 86);
         pageHeaderPanel.TabIndex = 0;
+        //
+        // projectionPanel
+        //
+        projectionPanel.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        projectionPanel.Controls.Add(labelProjectionStatus);
+        projectionPanel.Controls.Add(checkRestoreWallpaper);
+        projectionPanel.Controls.Add(buttonStopProjection);
+        projectionPanel.Controls.Add(checkLiveProjection);
+        projectionPanel.Controls.Add(buttonProjectCurrent);
+        projectionPanel.Controls.Add(buttonApplyTopology);
+        projectionPanel.Controls.Add(comboProjectionTopology);
+        projectionPanel.Controls.Add(labelProjection);
+        projectionPanel.Location = new Point(755, 8);
+        projectionPanel.Name = "projectionPanel";
+        projectionPanel.Size = new Size(856, 70);
+        projectionPanel.TabIndex = 2;
+        //
+        // labelProjection
+        //
+        labelProjection.AutoSize = true;
+        labelProjection.Font = new Font("Microsoft YaHei UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+        labelProjection.Location = new Point(0, 8);
+        labelProjection.Name = "labelProjection";
+        labelProjection.Size = new Size(110, 24);
+        labelProjection.TabIndex = 0;
+        labelProjection.Text = "Windows 投图";
+        //
+        // comboProjectionTopology
+        //
+        comboProjectionTopology.DropDownStyle = ComboBoxStyle.DropDownList;
+        comboProjectionTopology.FormattingEnabled = true;
+        comboProjectionTopology.Items.AddRange(new object[] { "保持当前模式", "仅电脑屏幕", "复制屏幕", "仅第二屏幕", "扩展屏幕" });
+        comboProjectionTopology.Location = new Point(116, 4);
+        comboProjectionTopology.Name = "comboProjectionTopology";
+        comboProjectionTopology.Size = new Size(142, 32);
+        comboProjectionTopology.TabIndex = 1;
+        //
+        // buttonApplyTopology
+        //
+        buttonApplyTopology.Location = new Point(266, 3);
+        buttonApplyTopology.Name = "buttonApplyTopology";
+        buttonApplyTopology.Size = new Size(86, 34);
+        buttonApplyTopology.TabIndex = 2;
+        buttonApplyTopology.Text = "应用模式";
+        buttonApplyTopology.UseVisualStyleBackColor = true;
+        buttonApplyTopology.Click += buttonApplyTopology_Click;
+        //
+        // buttonProjectCurrent
+        //
+        buttonProjectCurrent.Enabled = false;
+        buttonProjectCurrent.Location = new Point(360, 3);
+        buttonProjectCurrent.Name = "buttonProjectCurrent";
+        buttonProjectCurrent.Size = new Size(122, 34);
+        buttonProjectCurrent.TabIndex = 3;
+        buttonProjectCurrent.Text = "投图当前预览";
+        buttonProjectCurrent.UseVisualStyleBackColor = true;
+        buttonProjectCurrent.Click += buttonProjectCurrent_Click;
+        //
+        // checkLiveProjection
+        //
+        checkLiveProjection.AutoSize = true;
+        checkLiveProjection.Location = new Point(491, 8);
+        checkLiveProjection.Name = "checkLiveProjection";
+        checkLiveProjection.Size = new Size(90, 28);
+        checkLiveProjection.TabIndex = 4;
+        checkLiveProjection.Text = "实时投图";
+        checkLiveProjection.UseVisualStyleBackColor = true;
+        checkLiveProjection.CheckedChanged += checkLiveProjection_CheckedChanged;
+        //
+        // buttonStopProjection
+        //
+        buttonStopProjection.Enabled = false;
+        buttonStopProjection.Location = new Point(589, 3);
+        buttonStopProjection.Name = "buttonStopProjection";
+        buttonStopProjection.Size = new Size(88, 34);
+        buttonStopProjection.TabIndex = 5;
+        buttonStopProjection.Text = "停止投图";
+        buttonStopProjection.UseVisualStyleBackColor = true;
+        buttonStopProjection.Click += buttonStopProjection_Click;
+        //
+        // checkRestoreWallpaper
+        //
+        checkRestoreWallpaper.AutoSize = true;
+        checkRestoreWallpaper.Checked = true;
+        checkRestoreWallpaper.CheckState = CheckState.Checked;
+        checkRestoreWallpaper.Location = new Point(687, 8);
+        checkRestoreWallpaper.Name = "checkRestoreWallpaper";
+        checkRestoreWallpaper.Size = new Size(162, 28);
+        checkRestoreWallpaper.TabIndex = 6;
+        checkRestoreWallpaper.Text = "停止时恢复原壁纸";
+        checkRestoreWallpaper.UseVisualStyleBackColor = true;
+        //
+        // labelProjectionStatus
+        //
+        labelProjectionStatus.ForeColor = Color.DimGray;
+        labelProjectionStatus.Location = new Point(116, 42);
+        labelProjectionStatus.Name = "labelProjectionStatus";
+        labelProjectionStatus.Size = new Size(733, 24);
+        labelProjectionStatus.TabIndex = 7;
+        labelProjectionStatus.Text = "投图已关闭；投出原始图卡，不包含预览十字线和坐标。";
         //
         // labelPageDescription
         //
@@ -151,9 +262,12 @@ partial class WorkspaceForm
         StartPosition = FormStartPosition.CenterScreen;
         Text = "EOL 图卡工作台 - OpenCvSharp";
         FormClosing += WorkspaceForm_FormClosing;
+        FormClosed += WorkspaceForm_FormClosed;
         navigationPanel.ResumeLayout(false);
         contentPanel.ResumeLayout(false);
         pageHeaderPanel.ResumeLayout(false);
+        projectionPanel.ResumeLayout(false);
+        projectionPanel.PerformLayout();
         ResumeLayout(false);
     }
 
@@ -166,6 +280,15 @@ partial class WorkspaceForm
     private Panel contentPanel;
     private Panel pageHost;
     private Panel pageHeaderPanel;
+    private Panel projectionPanel;
+    private Label labelProjection;
+    private ComboBox comboProjectionTopology;
+    private Button buttonApplyTopology;
+    private Button buttonProjectCurrent;
+    private CheckBox checkLiveProjection;
+    private Button buttonStopProjection;
+    private CheckBox checkRestoreWallpaper;
+    private Label labelProjectionStatus;
     private Label labelPageDescription;
     private Label labelPageTitle;
 }

@@ -79,18 +79,31 @@ public sealed class WorkspacePreferences
     /// </summary>
     public string SelectedNavigationPageId { get; set; } = string.Empty;
 
+    /// <summary>Windows 投图工具上次选择的 Win+P 显示模式。</summary>
+    public EolTestPatternGenerator.Projection.DisplayTopology ProjectionTopology { get; set; } =
+        EolTestPatternGenerator.Projection.DisplayTopology.None;
+
+    /// <summary>停止投图或关闭程序时是否恢复首次投图前的桌面壁纸。</summary>
+    public bool RestoreWallpaperOnStop { get; set; } = true;
+
     public WorkspacePreferences Clone()
     {
         return new WorkspacePreferences
         {
             SelectedNavigationIndex = SelectedNavigationIndex,
-            SelectedNavigationPageId = SelectedNavigationPageId ?? string.Empty
+            SelectedNavigationPageId = SelectedNavigationPageId ?? string.Empty,
+            ProjectionTopology = ProjectionTopology,
+            RestoreWallpaperOnStop = RestoreWallpaperOnStop
         };
     }
 
     internal void RestoreMissingSections()
     {
         SelectedNavigationPageId ??= string.Empty;
+        if (!Enum.IsDefined(ProjectionTopology))
+        {
+            ProjectionTopology = EolTestPatternGenerator.Projection.DisplayTopology.None;
+        }
     }
 }
 

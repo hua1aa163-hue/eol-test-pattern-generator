@@ -1,6 +1,7 @@
 using EolTestPatternGenerator.Services;
 using EolTestPatternGenerator.Models;
 using EolTestPatternGenerator.Controls;
+using EolTestPatternGenerator.Projection;
 
 namespace EolTestPatternGenerator;
 
@@ -12,6 +13,7 @@ internal static class Program
         if (args.Length >= 1 && args[0].Equals("--self-test", StringComparison.OrdinalIgnoreCase))
         {
             GeneratedPatternVerifier.RunAll();
+            ProjectionVerifier.RunAll();
             StillVideoVerifier.VerifyGeometryAndScheduling();
             Console.WriteLine("图卡像素自检通过。");
             return 0;
@@ -72,19 +74,42 @@ internal static class Program
                 throw new InvalidOperationException("预览辅助显示开关无法重新开启。");
             }
 
+            int previewImageChanges = 0;
+            previewControl.ImageChanged += (_, _) => previewImageChanges++;
+            previewControl.SetImage(new Bitmap(3, 2), preserveView: false);
+            using (Bitmap? previewClone = previewControl.CloneCurrentImage())
+            {
+                if (!previewControl.HasImage || previewClone?.Size != new Size(3, 2))
+                {
+                    throw new InvalidOperationException("实时投图无法取得当前原始预览图副本。");
+                }
+            }
+
+            previewControl.SetImage(null, preserveView: false);
+            if (previewControl.HasImage || previewImageChanges != 2)
+            {
+                throw new InvalidOperationException("预览图片变化事件或清空状态不正确。");
+            }
+
             cycleEditor.SetCycle(new CrosstalkPixelCycle
             {
-                Pixels = [RgbChannelMask.Red],
+                Pixels = [RgbChannelMask.Blue, RgbChannelMask.None],
                 ColumnAdvance = int.MaxValue,
-                RowAdvance = int.MinValue
+                RowAdvance = int.MinValue,
+                TiltAngleDegrees = 10.125d
             });
-            CrosstalkPixelCycle clampedCycle = cycleEditor.GetCycle();
-            if (clampedCycle.ColumnAdvance != 4096 ||
-                clampedCycle.RowAdvance != -172 ||
-                clampedCycle.ResolveTiltAngleDegrees() != -89.0d)
+            CrosstalkPixelCycle normalizedCycle = cycleEditor.GetCycle();
+            ComboBox presetCombo = FindRequiredControl<ComboBox>(cycleEditor, "comboLegacyPreset");
+            if (normalizedCycle.PeriodLength != 8 ||
+                normalizedCycle.ColumnAdvance != -3 ||
+                normalizedCycle.ResolveTiltAngleDegrees() != 10.125d ||
+                presetCombo.Items.Count != 6 ||
+                cycleEditor.Controls.Find("numericColumnAdvance", true).Length != 0 ||
+                cycleEditor.Controls.Find("numericPeriodLength", true).Length != 0 ||
+                cycleEditor.Controls.Find("gridCycle", true).Length != 0)
             {
                 throw new InvalidOperationException(
-                    "串扰周期编辑器未将越界步进/倾斜角同步裁剪到界面可表示范围。");
+                    "串扰编辑器未固定为六种历史 8 像素预设，或已删除控件仍然存在。");
             }
 
             // Show 会触发与真实运行一致的 OnLoad；立即隐藏，自动验证三个窗体及 OpenCV 预览。
@@ -272,11 +297,38 @@ internal static class Program
             ListBox navigation = FindRequiredControl<ListBox>(form, "listNavigation");
             Panel pageHost = FindRequiredControl<Panel>(form, "pageHost");
             Label pageTitle = FindRequiredControl<Label>(form, "labelPageTitle");
+            ComboBox projectionTopology = FindRequiredControl<ComboBox>(form, "comboProjectionTopology");
+            CheckBox liveProjection = FindRequiredControl<CheckBox>(form, "checkLiveProjection");
+            CheckBox restoreWallpaper = FindRequiredControl<CheckBox>(form, "checkRestoreWallpaper");
+            Button projectCurrent = FindRequiredControl<Button>(form, "buttonProjectCurrent");
+            Button stopProjection = FindRequiredControl<Button>(form, "buttonStopProjection");
             int originalIndex = navigation.SelectedIndex;
 
             if (!navigation.Items.Cast<object>().Select(item => item?.ToString()).SequenceEqual(expectedTitles))
             {
                 throw new InvalidOperationException("工作台左侧导航顺序与约定不一致。");
+            }
+
+            string[] expectedTopologies = ["保持当前模式", "仅电脑屏幕", "复制屏幕", "仅第二屏幕", "扩展屏幕"];
+            if (!projectionTopology.Items.Cast<object>().Select(item => item?.ToString()).SequenceEqual(expectedTopologies) ||
+                liveProjection.Checked ||
+                projectCurrent.Text != "投图当前预览" ||
+                stopProjection.Text != "停止投图")
+            {
+                throw new InvalidOperationException("工作台投图控件未按 Designer 配置，或实时投图错误地在启动时开启。");
+            }
+
+            var projectionPreferences = new WorkspacePreferences
+            {
+                ProjectionTopology = EolTestPatternGenerator.Projection.DisplayTopology.Extend,
+                RestoreWallpaperOnStop = false
+            };
+            WorkspacePreferences projectionClone = projectionPreferences.Clone();
+            if (projectionClone.ProjectionTopology != EolTestPatternGenerator.Projection.DisplayTopology.Extend ||
+                projectionClone.RestoreWallpaperOnStop ||
+                restoreWallpaper.Name != "checkRestoreWallpaper")
+            {
+                throw new InvalidOperationException("工作台投图设置没有可靠复制或加载。");
             }
 
             for (int index = 0; index < expectedTitles.Length; index++)

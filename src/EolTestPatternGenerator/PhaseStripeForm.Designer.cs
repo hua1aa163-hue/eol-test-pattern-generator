@@ -208,17 +208,17 @@ partial class PhaseStripeForm
         groupPhase.Margin = new Padding(4, 4, 4, 4);
         groupPhase.Name = "groupPhase";
         groupPhase.Padding = new Padding(4, 4, 4, 4);
-        groupPhase.Size = new Size(550, 690);
+        groupPhase.Size = new Size(550, 320);
         groupPhase.TabIndex = 2;
         groupPhase.TabStop = false;
-        groupPhase.Text = "相位与周期像素通道";
+        groupPhase.Text = "相位与像素排列";
         //
         // cycleEditor
         //
         cycleEditor.Location = new Point(27, 94);
         cycleEditor.Margin = new Padding(4);
         cycleEditor.Name = "cycleEditor";
-        cycleEditor.Size = new Size(496, 574);
+        cycleEditor.Size = new Size(496, 204);
         cycleEditor.TabIndex = 2;
         cycleEditor.SettingsChanged += cycleEditor_SettingsChanged;
         // 

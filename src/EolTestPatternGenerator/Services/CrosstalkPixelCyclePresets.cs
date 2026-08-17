@@ -33,6 +33,74 @@ public static class CrosstalkPixelCyclePresets
     }
 
     /// <summary>
+    /// 将旧设置中的任意自定义周期收敛为最接近的固定 8 像素历史预设。
+    /// 比较 R/G/B 通道差异时会重复候选 8 像素模板；位置不足时按全灭处理，
+    /// 分数相同时按枚举顺序优先选择 RGB。原设置的有效倾斜角会完整保留。
+    /// </summary>
+    public static CrosstalkPixelCycle NormalizeToNearestLegacyPreset(CrosstalkPixelCycle? cycle)
+    {
+        RgbPixelOrder order = FindNearestLegacyOrder(cycle);
+        CrosstalkPixelCycle normalized = CreateLegacy(order);
+        if (cycle is null)
+        {
+            return normalized;
+        }
+
+        double tiltAngle = cycle.ResolveTiltAngleDegrees();
+        if (!double.IsFinite(tiltAngle))
+        {
+            tiltAngle = CrosstalkPixelCycle.DefaultTiltAngleDegrees;
+        }
+
+        normalized.SetTiltAngleDegrees(Math.Clamp(
+            tiltAngle,
+            CrosstalkPixelCycle.MinimumTiltAngleDegrees,
+            CrosstalkPixelCycle.MaximumTiltAngleDegrees));
+        return normalized;
+    }
+
+    /// <summary>
+    /// 返回与给定周期通道最接近的六种历史排列之一。
+    /// 横纵步进和倾斜角不参与比较，因此改变倾角不会让界面丢失当前排列。
+    /// </summary>
+    public static RgbPixelOrder FindNearestLegacyOrder(CrosstalkPixelCycle? cycle)
+    {
+        if (cycle?.Pixels is not { Count: > 0 } pixels)
+        {
+            return RgbPixelOrder.RGB;
+        }
+
+        RgbPixelOrder bestOrder = RgbPixelOrder.RGB;
+        int bestDifference = int.MaxValue;
+        int comparisonLength = Math.Max(
+            LegacyRgbPixels.Length,
+            Math.Min(pixels.Count, CrosstalkPixelCycle.MaximumPeriodLength));
+
+        foreach (RgbPixelOrder candidate in Enum.GetValues<RgbPixelOrder>())
+        {
+            int difference = 0;
+            for (int index = 0; index < comparisonLength; index++)
+            {
+                RgbChannelMask actual = index < pixels.Count
+                    ? pixels[index] & RgbChannelMask.All
+                    : RgbChannelMask.None;
+                RgbChannelMask expected = Permute(
+                    LegacyRgbPixels[index % LegacyRgbPixels.Length],
+                    candidate);
+                difference += CountDifferentChannels(actual, expected);
+            }
+
+            if (difference < bestDifference)
+            {
+                bestDifference = difference;
+                bestOrder = candidate;
+            }
+        }
+
+        return bestOrder;
+    }
+
+    /// <summary>
     /// 检查一个自定义周期是否仍与旧版六种预设之一完全相同。
     /// 可用于界面在加载旧配置或用户恢复预设时显示对应名称。
     /// </summary>
@@ -112,6 +180,14 @@ public static class CrosstalkPixelCyclePresets
         }
 
         return result;
+    }
+
+    private static int CountDifferentChannels(RgbChannelMask left, RgbChannelMask right)
+    {
+        int difference = (int)(left ^ right);
+        return ((difference & (int)RgbChannelMask.Red) != 0 ? 1 : 0) +
+               ((difference & (int)RgbChannelMask.Green) != 0 ? 1 : 0) +
+               ((difference & (int)RgbChannelMask.Blue) != 0 ? 1 : 0);
     }
 
     private static void ValidateLegacyOrder(RgbPixelOrder order)
