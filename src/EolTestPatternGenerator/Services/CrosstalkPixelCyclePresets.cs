@@ -101,6 +101,25 @@ public static class CrosstalkPixelCyclePresets
     }
 
     /// <summary>
+    /// 判断周期像素是否等于指定历史排列按当前长度截取或以全灭位置补齐后的结果。
+    /// 这个严格匹配用于恢复短周期时保存的排列选择；例如周期为 1 时 RGB 与 RBG
+    /// 的首位置相同，不能只靠最近差异重新推断用户原先选择。
+    /// </summary>
+    public static bool MatchesResizedLegacyOrder(CrosstalkPixelCycle? cycle, RgbPixelOrder order)
+    {
+        if (!Enum.IsDefined(order) ||
+            cycle?.Pixels is not { Count: >= CrosstalkPixelCycle.MinimumPeriodLength and
+                <= CrosstalkPixelCycle.MaximumPeriodLength } pixels)
+        {
+            return false;
+        }
+
+        CrosstalkPixelCycle expected = CreateLegacy(order);
+        expected.Resize(pixels.Count);
+        return pixels.SequenceEqual(expected.Pixels);
+    }
+
+    /// <summary>
     /// 检查一个自定义周期是否仍与旧版六种预设之一完全相同。
     /// 可用于界面在加载旧配置或用户恢复预设时显示对应名称。
     /// </summary>

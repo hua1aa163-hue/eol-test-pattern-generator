@@ -23,9 +23,11 @@ partial class CrosstalkCycleEditor
         labelPreset = new Label();
         comboLegacyPreset = new ComboBox();
         labelPeriodLength = new Label();
+        numericPeriodLength = new NumericUpDown();
         labelTiltAngle = new Label();
         numericTiltAngle = new NumericUpDown();
         labelHelp = new Label();
+        ((System.ComponentModel.ISupportInitialize)numericPeriodLength).BeginInit();
         ((System.ComponentModel.ISupportInitialize)numericTiltAngle).BeginInit();
         SuspendLayout();
         //
@@ -54,9 +56,20 @@ partial class CrosstalkCycleEditor
         labelPeriodLength.AutoSize = true;
         labelPeriodLength.Location = new Point(207, 8);
         labelPeriodLength.Name = "labelPeriodLength";
-        labelPeriodLength.Size = new Size(124, 20);
+        labelPeriodLength.Size = new Size(64, 20);
         labelPeriodLength.TabIndex = 2;
-        labelPeriodLength.Text = "固定周期：8 像素";
+        labelPeriodLength.Text = "周期(px)";
+        //
+        // numericPeriodLength
+        //
+        numericPeriodLength.Location = new Point(273, 4);
+        numericPeriodLength.Maximum = new decimal(new int[] { 1024, 0, 0, 0 });
+        numericPeriodLength.Minimum = new decimal(new int[] { 1, 0, 0, 0 });
+        numericPeriodLength.Name = "numericPeriodLength";
+        numericPeriodLength.Size = new Size(60, 27);
+        numericPeriodLength.TabIndex = 3;
+        numericPeriodLength.Value = new decimal(new int[] { 8, 0, 0, 0 });
+        numericPeriodLength.ValueChanged += numericPeriodLength_ValueChanged;
         //
         // labelTiltAngle
         //
@@ -64,7 +77,7 @@ partial class CrosstalkCycleEditor
         labelTiltAngle.Location = new Point(0, 48);
         labelTiltAngle.Name = "labelTiltAngle";
         labelTiltAngle.Size = new Size(83, 20);
-        labelTiltAngle.TabIndex = 3;
+        labelTiltAngle.TabIndex = 4;
         labelTiltAngle.Text = "倾斜角(°)";
         //
         // numericTiltAngle
@@ -76,7 +89,7 @@ partial class CrosstalkCycleEditor
         numericTiltAngle.Minimum = new decimal(new int[] { 89, 0, 0, int.MinValue });
         numericTiltAngle.Name = "numericTiltAngle";
         numericTiltAngle.Size = new Size(112, 27);
-        numericTiltAngle.TabIndex = 4;
+        numericTiltAngle.TabIndex = 5;
         numericTiltAngle.Value = new decimal(new int[] { 18435, 0, 0, 196608 });
         numericTiltAngle.ValueChanged += numericTiltAngle_ValueChanged;
         //
@@ -86,8 +99,8 @@ partial class CrosstalkCycleEditor
         labelHelp.Location = new Point(0, 84);
         labelHelp.Name = "labelHelp";
         labelHelp.Size = new Size(331, 48);
-        labelHelp.TabIndex = 5;
-        labelHelp.Text = "固定 8 像素周期；颜色通道严格为 0/255；每行位移=3×tan(倾角)。";
+        labelHelp.TabIndex = 6;
+        labelHelp.Text = "周期可调；颜色通道严格为 0/255；每行位移=3×tan(倾角)。";
         //
         // CrosstalkCycleEditor
         //
@@ -96,11 +109,13 @@ partial class CrosstalkCycleEditor
         Controls.Add(labelHelp);
         Controls.Add(numericTiltAngle);
         Controls.Add(labelTiltAngle);
+        Controls.Add(numericPeriodLength);
         Controls.Add(labelPeriodLength);
         Controls.Add(comboLegacyPreset);
         Controls.Add(labelPreset);
         Name = "CrosstalkCycleEditor";
         Size = new Size(335, 136);
+        ((System.ComponentModel.ISupportInitialize)numericPeriodLength).EndInit();
         ((System.ComponentModel.ISupportInitialize)numericTiltAngle).EndInit();
         ResumeLayout(false);
         PerformLayout();
@@ -111,6 +126,7 @@ partial class CrosstalkCycleEditor
     private Label labelPreset;
     private ComboBox comboLegacyPreset;
     private Label labelPeriodLength;
+    private NumericUpDown numericPeriodLength;
     private Label labelTiltAngle;
     private NumericUpDown numericTiltAngle;
     private Label labelHelp;

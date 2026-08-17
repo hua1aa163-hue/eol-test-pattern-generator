@@ -5,7 +5,7 @@ using System.ComponentModel;
 namespace EolTestPatternGenerator;
 
 /// <summary>
-/// 固定 8 像素周期、可选择六种 RGB 排列的“串扰像素排列”编辑和导出窗口。
+/// 周期像素数可调、可选择六种 RGB 排列的“串扰像素排列”编辑和导出窗口。
 /// </summary>
 public partial class PhaseStripeForm : Form
 {
@@ -77,8 +77,8 @@ public partial class PhaseStripeForm : Form
         toolTip.SetToolTip(numericCanvasHeight, "最终导出图像的像素高度。");
         toolTip.SetToolTip(
             cycleEditor,
-            "选择固定 8 像素周期的 RGB 排列和倾斜角；每行位移为 3 × tan(倾斜角)。");
-        toolTip.SetToolTip(buttonBatchExport, "依次生成固定周期的 8 个相位，文件名为相位序号。");
+            "设置周期像素数、RGB 排列和倾斜角；每行位移为 3 × tan(倾斜角)。");
+        toolTip.SetToolTip(buttonBatchExport, "依次生成当前周期的全部相位，文件名为相位序号。");
         toolTip.SetToolTip(previewControl, "鼠标滚轮缩放；按住鼠标左键拖动图像。");
 
         UpdateControlAvailability();
@@ -100,7 +100,7 @@ public partial class PhaseStripeForm : Form
         SetNumericValue(numericCanvasHeight, settings.CanvasHeight);
         regionMarginsEditor.CanvasSize = new Size(settings.CanvasWidth, settings.CanvasHeight);
         regionMarginsEditor.SetMargins(settings.GetMargins());
-        cycleEditor.SetCycle(CrosstalkPixelCyclePresets.Resolve(settings));
+        cycleEditor.SetCycle(CrosstalkPixelCyclePresets.Resolve(settings), settings.PixelOrder);
         numericPhase.Maximum = Math.Max(1, cycleEditor.PeriodLength);
         SetNumericValue(numericPhase, settings.Phase);
         borderOverlayEditor.SetSettings(settings.BorderOverlay ?? new BorderOverlaySettings());
@@ -188,8 +188,8 @@ public partial class PhaseStripeForm : Form
         };
         settings.SetMargins(regionMarginsEditor.GetMargins());
 
-        // 精简界面只会产生六种固定预设；始终同步旧枚举，使旧版本也能读到当前排列。
-        settings.PixelOrder = CrosstalkPixelCyclePresets.FindNearestLegacyOrder(settings.PixelCycle);
+        // 精简界面只会产生六种排列预设；始终同步旧枚举，使旧版本也能读到当前排列。
+        settings.PixelOrder = cycleEditor.SelectedOrder;
 
         return settings;
     }

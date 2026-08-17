@@ -100,16 +100,58 @@ internal static class Program
             });
             CrosstalkPixelCycle normalizedCycle = cycleEditor.GetCycle();
             ComboBox presetCombo = FindRequiredControl<ComboBox>(cycleEditor, "comboLegacyPreset");
-            if (normalizedCycle.PeriodLength != 8 ||
+            NumericUpDown periodInput = FindRequiredControl<NumericUpDown>(cycleEditor, "numericPeriodLength");
+            if (normalizedCycle.PeriodLength != 2 ||
                 normalizedCycle.ColumnAdvance != -3 ||
                 normalizedCycle.ResolveTiltAngleDegrees() != 10.125d ||
                 presetCombo.Items.Count != 6 ||
                 cycleEditor.Controls.Find("numericColumnAdvance", true).Length != 0 ||
-                cycleEditor.Controls.Find("numericPeriodLength", true).Length != 0 ||
                 cycleEditor.Controls.Find("gridCycle", true).Length != 0)
             {
                 throw new InvalidOperationException(
-                    "串扰编辑器未固定为六种历史 8 像素预设，或已删除控件仍然存在。");
+                    "串扰编辑器未保留周期像素数，或已删除的横向步进/RGB 表格仍然存在。");
+            }
+
+            // 周期输入始终依据明确选择的排列重建。8→4→8 必须恢复预设后段，
+            // 而不是把缩短时删除的位置永久变成全灭。
+            cycleEditor.SetCycle(
+                CrosstalkPixelCyclePresets.CreateLegacy(RgbPixelOrder.RBG),
+                RgbPixelOrder.RBG);
+            periodInput.Value = 4;
+            CrosstalkPixelCycle shortenedCycle = cycleEditor.GetCycle();
+            periodInput.Value = 8;
+            CrosstalkPixelCycle restoredEightPixelCycle = cycleEditor.GetCycle();
+            if (!CrosstalkPixelCyclePresets.MatchesResizedLegacyOrder(
+                    shortenedCycle,
+                    RgbPixelOrder.RBG) ||
+                !CrosstalkPixelCyclePresets.TryGetLegacyOrder(
+                    restoredEightPixelCycle,
+                    out RgbPixelOrder restoredOrder) ||
+                restoredOrder != RgbPixelOrder.RBG)
+            {
+                throw new InvalidOperationException("周期输入框在 8→4→8 后没有恢复完整预设。");
+            }
+
+            // 周期为 1 时 RGB 与 RBG 的像素内容相同，保存的 PixelOrder 必须作为
+            // 首选排列参与加载，不能仅靠像素差异重新推断为 RGB。
+            periodInput.Value = 1;
+            CrosstalkPixelCycle savedOnePixelCycle = cycleEditor.GetCycle();
+            RgbPixelOrder savedOnePixelOrder = cycleEditor.SelectedOrder;
+            cycleEditor.SetCycle(
+                CrosstalkPixelCyclePresets.CreateLegacy(RgbPixelOrder.RGB),
+                RgbPixelOrder.RGB);
+            cycleEditor.SetCycle(savedOnePixelCycle, savedOnePixelOrder);
+            if (cycleEditor.PeriodLength != 1 || cycleEditor.SelectedOrder != RgbPixelOrder.RBG)
+            {
+                throw new InvalidOperationException("短周期保存后未恢复用户选择的 RBG 排列。");
+            }
+
+            CrosstalkPixelCycle rgbTwoPixels = CrosstalkPixelCyclePresets.CreateLegacy(RgbPixelOrder.RGB);
+            rgbTwoPixels.Resize(2);
+            cycleEditor.SetCycle(rgbTwoPixels, RgbPixelOrder.RBG);
+            if (cycleEditor.SelectedOrder != RgbPixelOrder.RGB)
+            {
+                throw new InvalidOperationException("与周期不匹配的首选排列被错误采用。");
             }
 
             // Show 会触发与真实运行一致的 OnLoad；立即隐藏，自动验证三个窗体及 OpenCV 预览。
@@ -196,7 +238,16 @@ internal static class Program
             RowAdvance = 0,
             TiltAngleDegrees = 10.125d
         });
-        phase.Maximum = 2;
+        NumericUpDown period = FindRequiredControl<NumericUpDown>(cycle, "numericPeriodLength");
+        // 先改变为另一个值再设为 2，实际触发 Designer 绑定的 ValueChanged，
+        // 验证周期输入会同步收窄当前相位的有效范围。
+        period.Value = 3;
+        period.Value = 2;
+        if (phase.Maximum != 2)
+        {
+            throw new InvalidOperationException("周期输入框没有同步当前相位范围。");
+        }
+
         phase.Value = 2;
         border.SetSettings(new BorderOverlaySettings { Enabled = true, LineWidth = 9 });
         format.SelectedIndex = (int)ImageFormatKind.Bmp;
@@ -214,7 +265,7 @@ internal static class Program
             FindRequiredControl<NumericUpDown>(form, "numericCanvasHeight").Value != 1080 ||
             restoredMargins.Left != 71 || restoredMargins.Top != 226 ||
             restoredMargins.Right != 72 || restoredMargins.Bottom != 227 ||
-            phase.Value != 1 || restoredCycle.PeriodLength != 8 ||
+            phase.Value != 1 || phase.Maximum != 8 || restoredCycle.PeriodLength != 8 ||
             restoredCycle.ResolveTiltAngleDegrees() != CrosstalkPixelCycle.DefaultTiltAngleDegrees ||
             !CrosstalkPixelCyclePresets.TryGetLegacyOrder(restoredCycle, out RgbPixelOrder order) ||
             order != RgbPixelOrder.RGB || restoredBorder.Enabled || restoredBorder.LineWidth != 5 ||

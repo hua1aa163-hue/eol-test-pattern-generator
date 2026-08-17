@@ -748,6 +748,20 @@ public static class GeneratedPatternVerifier
             {
                 throw new InvalidOperationException($"新版周期未能识别旧 {order} 排列预设。");
             }
+
+            CrosstalkPixelCycle resizedPreset = migrated.PixelCycle.Clone();
+            resizedPreset.Resize(4);
+            if (!CrosstalkPixelCyclePresets.MatchesResizedLegacyOrder(resizedPreset, order))
+            {
+                throw new InvalidOperationException($"缩短周期未能识别保存的 {order} 排列预设。");
+            }
+        }
+
+        CrosstalkPixelCycle rgbTwoPixels = CrosstalkPixelCyclePresets.CreateLegacy(RgbPixelOrder.RGB);
+        rgbTwoPixels.Resize(2);
+        if (CrosstalkPixelCyclePresets.MatchesResizedLegacyOrder(rgbTwoPixels, RgbPixelOrder.RBG))
+        {
+            throw new InvalidOperationException("周期内容不匹配时错误接受了保存的首选排列。");
         }
 
         VerifyCustomPixelCycle();
@@ -1410,6 +1424,26 @@ public static class GeneratedPatternVerifier
             if (reader.Load().PhaseStripe.Settings.PixelCycle!.Pixels[0] != RgbChannelMask.Red)
             {
                 throw new InvalidOperationException("设置仓库 Load 未深拷贝串扰像素周期。");
+            }
+
+            // 周期为 1 时 RGB 与 RBG 的像素内容无法区分；JSON 必须把 PixelOrder
+            // 与 PixelCycle 一并保留，供串扰编辑器恢复用户明确选择的 RBG。
+            writer.UpdateAndSave(preferences =>
+            {
+                CrosstalkPixelCycle onePixelRbg =
+                    CrosstalkPixelCyclePresets.CreateLegacy(RgbPixelOrder.RBG);
+                onePixelRbg.Resize(1);
+                preferences.PhaseStripe.Settings.PixelOrder = RgbPixelOrder.RBG;
+                preferences.PhaseStripe.Settings.PixelCycle = onePixelRbg;
+            });
+            ApplicationPreferences shortCycleLoaded = reader.Reload();
+            if (shortCycleLoaded.PhaseStripe.Settings.PixelOrder != RgbPixelOrder.RBG ||
+                shortCycleLoaded.PhaseStripe.Settings.PixelCycle is not { PeriodLength: 1 } onePixelCycle ||
+                !CrosstalkPixelCyclePresets.MatchesResizedLegacyOrder(
+                    onePixelCycle,
+                    RgbPixelOrder.RBG))
+            {
+                throw new InvalidOperationException("周期 1 的 RBG 排列未能从 JSON 设置完整恢复。");
             }
         }
         finally
